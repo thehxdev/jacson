@@ -38,6 +38,11 @@
 extern "C" {
 #endif // __cplusplus
 
+#define JACSON_VERSION_MAJOR 0
+#define JACSON_VERSION_MINOR 0
+#define JACSON_VERSION_PATCH 1
+#define JACSON_VERSION "0.0.1"
+
 typedef struct Jcsn_AST Jcsn_AST;
 
 // Parse json data from bytes into an AST
