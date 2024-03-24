@@ -46,7 +46,7 @@ extern "C" {
 typedef struct Jcsn_AST Jcsn_AST;
 
 // Parse json data from bytes into an AST
-Jcsn_AST *jcsn_parse_json(char *jdata);
+Jcsn_AST jcsn_parse_json(char *jdata);
 
 
 #ifdef __cplusplus

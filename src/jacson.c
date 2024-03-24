@@ -74,15 +74,16 @@ extern "C" {
 #endif // __JCSN_LOG__
 
 
+// Dynamic array default capacity
+#define DARR_DEFAULT_CAP 5
+
+
 /**
  * Types
  */
 
 // a signed 8-bit integer
 typedef char byte;
-
-// use normal character pointer as a string
-typedef char* Jcsn_JString;
 
 
 // json value type
@@ -98,8 +99,8 @@ enum Jcsn_JVal_T {
 union __Jcsn_JValue {
     struct Jcsn_JArray *array;
     struct Jcsn_JObject *object;
-    Jcsn_JString string;
-    int  boolean;
+    char *string;
+    byte boolean;
     long integer; // Handle all numbers as integers for now...
 
     // Don't handle floating point numbers yet...
@@ -134,6 +135,12 @@ typedef struct Jcsn_JObject {
     char **names;
     unsigned long len;
     unsigned long cap;
+
+    // If this flag is set to 1, indicates that a `name` in json object
+    // is waiting for it's value to be set.
+    // Otherwise the pairs in json object are compelete and parser
+    // can parse a new pair or end the json object parsing.
+    byte situation;
 } Jcsn_JObject;
 
 
@@ -146,7 +153,7 @@ struct Jcsn_AST {
 
 
 typedef struct Jcsn_Parser {
-    // Since we're working with pointer arithmic, keep a pointer
+    // Since we're working with pointer arithmic, keep a pointer to
     // first character in json data to prevent out of bound access
     // to memory locations if parser wants to go backward.
     char *first;
@@ -215,9 +222,11 @@ static char *jcsn_exact_start(char *source, char *query) {
 
 // Parse a string from json data
 static char *jcsn_parse_string(Jcsn_Parser *parser) {
-    // "a json string"
-    //  ^            ^
-    //  *base        *curr
+    // "a json string example"
+    //  ^                    ^
+    //  *base                *curr
+    //  |--------------------|
+    //          delta
 
     char *str = NULL;
     size_t delta = 0;
@@ -242,9 +251,24 @@ static char *jcsn_parse_string(Jcsn_Parser *parser) {
     strncpy(str, parser->base, delta);
 
     sync_ptrs(parser->base, parser->curr);
+    // put base pointer after last `"` character
     parser->base += 1;
 ret:
     return str;
+}
+
+
+static Jcsn_JValue *jcsn_jobj_new(size_t cap) {
+    // TODO: Impement json object constructor
+    (void)cap;
+    return NULL;
+}
+
+
+static Jcsn_JValue *jcsn_jarr_new(size_t cap) {
+    // TODO: Impement json array constructor
+    (void)cap;
+    return NULL;
 }
 
 
@@ -254,9 +278,14 @@ ret:
  */
 
 // Parse json data from bytes into an AST
-Jcsn_AST *jcsn_parse_json(char *jdata) {
-    if (jdata == NULL)
-        return NULL;
+Jcsn_AST jcsn_parse_json(char *jdata) {
+    // if (jdata == NULL)
+    //     return NULL;
+
+    Jcsn_AST ast = {
+        .robj = NULL,
+        .depth = 0,
+    };
 
     Jcsn_Parser parser = {
         .first = jdata,
@@ -265,7 +294,54 @@ Jcsn_AST *jcsn_parse_json(char *jdata) {
         .curr_scope = NULL,
     };
 
-    return NULL;
+    jcsn_skip_whitespaces(&parser.base);
+
+    char ch, *tmp;
+    Jcsn_JValue *new = NULL;
+    while ((ch = *parser.base) != '\0') {
+        if (ch == '{') {
+            new = jcsn_jobj_new(DARR_DEFAULT_CAP);
+            new->parent = parser.curr_scope;
+            parser.curr_scope = new;
+            // TODO: Handle `new` adding to json object or json array
+        } else if (ch == '[') {
+            new = jcsn_jarr_new(DARR_DEFAULT_CAP);
+            new->parent = parser.curr_scope;
+            parser.curr_scope = new;
+            // TODO: Handle `new` adding to json object or json array
+        } else if (ch == '}' || ch == ']') {
+            parser.curr_scope->parsed = true;
+            if (parser.curr_scope->parent == NULL)
+                ast.robj = parser.curr_scope;
+            parser.curr_scope = parser.curr_scope->parent;
+        } else if (ch == '\"') {
+            // TODO: Handle NULL pointer
+        } else if (ch == 't' || ch == 'f') {
+            // TODO: Parse json boolean
+            // • Check for parent value type
+            // • Check for `jobj_set` in parser
+        } else if (ch == 'n') {
+            // TODO: Parse json null
+            // • Check for parent value type
+            // • Check for `jobj_set` in parser
+        } else if (jcsn_char_isdigit(ch)) {
+            // TODO: Parse json number
+            // • Check for parent value type
+            // • Check for `jobj_set` in parser
+        } else {
+            JCSN_LOG_ERR("%s: Failed to parse json data\n", __FUNCTION__);
+            goto ret;
+        }
+
+        if (parser.curr_scope == NULL)
+            goto ret;
+
+        parser.base += 1;
+        jcsn_skip_whitespaces(&parser.base);
+    }
+
+ret:
+    return ast;
 }
 
 
