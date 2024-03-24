@@ -53,14 +53,25 @@ extern "C" {
  * Macros
  */
 
+// un-comment line below to enable logging (re-compilation needed)
+// #define __JCSN_LOG__
+
 #ifndef true
-# define true 1
+    #define true 1
 #endif // true
 
 #ifndef false
-# define false 0
+    #define false 0
 #endif // false
 
+// sync left-side pointer with the right-side one
+#define sync_ptrs(ptr1, ptr2) (ptr1) = (ptr2)
+
+#ifdef __JCSN_LOG__
+    #define JCSN_LOG_ERR(format, ...) (void) fprintf(stderr, "[ERROR]" format, __VA_ARGS__)
+#else
+    #define JCSN_LOG_ERR(format, ...)
+#endif // __JCSN_LOG__
 
 
 /**
@@ -89,7 +100,7 @@ union __Jcsn_JValue {
     struct Jcsn_JObject *object;
     Jcsn_JString string;
     int  boolean;
-    long integer; // Handle all numbers as integers
+    long integer; // Handle all numbers as integers for now...
 
     // Don't handle floating point numbers yet...
     double real; // Fortran programmer vibe, huh? :)
@@ -116,10 +127,10 @@ typedef struct Jcsn_JArray {
 
 // Json object is just a map between strings and Json values.
 // So I defined a json object as a dynamic array that each member
-// of `names` field is mapped to exact same index in `datas` field.
-// In this form, we created a map from strings to data they refer to.
+// of `names` field is mapped to exact same index in `values` field.
+// In this form, we created a map from strings to value they refer to.
 typedef struct Jcsn_JObject {
-    Jcsn_JValue **datas;
+    Jcsn_JValue **values;
     char **names;
     unsigned long len;
     unsigned long cap;
@@ -135,8 +146,13 @@ struct Jcsn_AST {
 
 
 typedef struct Jcsn_Parser {
+    // Since we're working with pointer arithmic, keep a pointer
+    // first character in json data to prevent out of bound access
+    // to memory locations if parser wants to go backward.
+    char *first;
+
     // Pointer to base character
-    // (Used to extract sub-strings with `curr` field)
+    // (Used to extract tokens (sub-strings) with `curr` field)
     char *base;
 
     // Pointer to current character in parser
@@ -177,10 +193,58 @@ jcsn_char_isdigit(char ch) {
 }
 
 
-// get current character then increment the pointer
-static inline __attribute__((always_inline)) char
-jcsn_getchar_inc(char **ptr) {
-    return (**ptr == '\0') ? **ptr : (*ptr += 1, **ptr);
+// `source` is exactly starts with `query`
+static char *jcsn_exact_start(char *source, char *query) {
+    // example: "Hello World!", "Hello" -> True
+    register char *s = source;
+    register char *q = query;
+
+    if (*s != *q)
+        return NULL;
+
+    while (*s && *q) {
+        if (*s == *q) {
+            s += 1;
+            q  += 1;
+        }
+    }
+
+    return (*q == '\0') ? s : NULL;
+}
+
+
+// Parse a string from json data
+static char *jcsn_parse_string(Jcsn_Parser *parser) {
+    // "a json string"
+    //  ^            ^
+    //  *base        *curr
+
+    char *str = NULL;
+    size_t delta = 0;
+    if (*parser->base != '\"')
+        goto ret;
+
+    sync_ptrs(parser->curr, parser->base += 1);
+
+    while (*parser->curr != '\"') {
+        parser->curr += 1;
+        // skip '\"' scape sequance
+        if (*parser->curr == '\\' && *(parser->curr+1) == '*')
+            parser->curr += 2;
+    }
+
+    delta = parser->curr - parser->base;
+    str = calloc(delta + 1, sizeof(char));
+    if (str == NULL) {
+        JCSN_LOG_ERR("%s: Failed to allocate memory for new sub-string\n", __FUNCTION__);
+        goto ret;
+    }
+    strncpy(str, parser->base, delta);
+
+    sync_ptrs(parser->base, parser->curr);
+    parser->base += 1;
+ret:
+    return str;
 }
 
 
@@ -195,8 +259,9 @@ Jcsn_AST *jcsn_parse_json(char *jdata) {
         return NULL;
 
     Jcsn_Parser parser = {
-        .base = jdata,
-        .curr = jdata,
+        .first = jdata,
+        .base  = jdata,
+        .curr  = jdata,
         .curr_scope = NULL,
     };
 
