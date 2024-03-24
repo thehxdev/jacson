@@ -1,0 +1,7 @@
+*.o
+*.json
+build/
+vgcore*
+.cache/
+a.out
+compile_flags.txt
