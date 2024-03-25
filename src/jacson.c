@@ -79,6 +79,10 @@ extern "C" {
 // Dynamic array default capacity
 #define DARR_DEFAULT_CAP 5
 
+// Since `free` ignores NULL pointers, set pointers to `NULL` after
+// calling `free` on them to prevent double free error.
+#define xfree(ptr) do { free((ptr)); (ptr) = NULL; } while (0)
+
 
 /**
  * Types
@@ -113,7 +117,7 @@ jcsn_char_isdigit(char ch) {
 
 // `source` is exactly starts with `query`
 static char *jcsn_exact_start(char *source, char *query) {
-    // example: "Hello World!", "Hello" -> True
+    // example: s = "Hello World!", q = "Hello" -> True
     register char *s = source;
     register char *q = query;
 
@@ -169,37 +173,80 @@ ret:
 }
 
 
+// Construct a general json value
+static Jcsn_JValue *jcsn_jval_new(enum Jcsn_JVal_T type) {
+    Jcsn_JValue *val = malloc(sizeof(*val));
+    if (val == NULL)
+        goto ret;
+
+    val->type = type;
+    val->parsed = false;
+
+ret:
+    return val;
+}
+
+
+// Construct a new json object
 static Jcsn_JValue *jcsn_jobj_new(size_t cap) {
-    // TODO: Impement json object constructor
-    (void)cap;
-    return NULL;
+    Jcsn_JValue *jval = jcsn_jval_new(J_OBJECT);
+    if (jval == NULL)
+        goto ret;
+
+    Jcsn_JObject **obj = &jval->data.object;
+
+    *obj = malloc(sizeof(**obj));
+    if (*obj == NULL) {
+        xfree(jval);
+        goto ret;
+    }
+
+    (*obj)->len = 0;
+    (*obj)->cap = cap;
+    // TODO: Handle null pointers
+    (*obj)->names = malloc(sizeof(char*) * cap);
+    (*obj)->values = malloc(sizeof(Jcsn_JValue*) * cap);
+
+ret:
+    return jval;
 }
 
 
 static byte jcsn_jobj_add_name(Jcsn_JObject *jobj, const char *name) {
-    // TODO: Implement jcsn_jobj_add_name
-    (void)jobj; (void)name;
+    if ((jobj->len % jobj->cap) == 0) {
+        size_t sum = (jobj->len + jobj->cap);
+
+        // TODO: Handle null pointers
+        jobj->names = realloc(jobj->names, sum * sizeof(char*));
+        jobj->values = realloc(jobj->values, sum * sizeof(Jcsn_JValue*));
+        if (jobj->names == NULL || jobj->values == NULL)
+            return 1;
+    }
+
+    char **tmp = &jobj->names[jobj->len];
+    *tmp = (char*)name;
+    jobj->len += 1;
+    jobj->situation = 1;
     return 0;
 }
 
 
 static byte jcsn_jobj_set_value(Jcsn_JObject *jobj, Jcsn_JValue *value) {
-    // TODO: Impement json object value setter
-    (void)jobj; (void)value;
+    Jcsn_JValue **tmp = &jobj->values[jobj->len-1];
+    *tmp = value;
+    jobj->situation = 0;
     return 0;
 }
 
 
 static Jcsn_JValue *jcsn_jarr_new(size_t cap) {
-    Jcsn_JValue *jval = malloc(sizeof(*jval));
+    Jcsn_JValue *jval = jcsn_jval_new(J_ARRAY);
     if (jval == NULL)
         goto ret;
 
-    jval->type = J_ARRAY;
-    jval->parsed = false;
     Jcsn_JArray **arr = &jval->data.array;
 
-    *arr = malloc(sizeof(Jcsn_JArray));
+    *arr = malloc(sizeof(**arr));
     // TODO: Handle null pointer
     (*arr)->vals = malloc(sizeof(Jcsn_JValue*) * cap);
     (*arr)->len = 0;
@@ -214,7 +261,10 @@ static byte jcsn_jarr_append(Jcsn_JArray *jarr, Jcsn_JValue *value) {
     if ((jarr->len % jarr->cap) == 0) {
         size_t new_size = (jarr->len + jarr->cap) * sizeof(Jcsn_JValue*);
         jarr->vals = realloc(jarr->vals, new_size);
-        // TODO: Handle null pointer
+        if (jarr->vals == NULL) {
+            JCSN_LOG_ERR("%s: Failed to grow json array's memory\n", __FUNCTION__);
+            return 1;
+        }
     }
 
     Jcsn_JValue **tmp = &jarr->vals[jarr->len];
@@ -236,30 +286,25 @@ static byte jcsn_handle_jvalue(Jcsn_Parser *parser, Jcsn_JValue *value) {
         goto ret;
     }
 
-    if ((*scope)->type == J_OBJECT) {
-        if ((*scope)->data.object->situation) {
-            // TODO: Implement jcsn_jobj_set_value
+    if ((*scope)->type == J_OBJECT)
+        if ((*scope)->data.object->situation)
             (void)jcsn_jobj_set_value((*scope)->data.object, value);
-            (*scope)->data.object->situation = 0;
-        } else
+        else
             stat = 1;
-    }
-    else if ((*scope)->type == J_ARRAY) {
-        // TODO: Implement jcsn_jarr_append
+    else if ((*scope)->type == J_ARRAY)
         (void)jcsn_jarr_append((*scope)->data.array, value);
-    }
 
 ret:
     return stat;
 }
 
 
+// Construct a new json string
 static Jcsn_JValue *jcsn_jstr_new(const char *str) {
-    Jcsn_JValue *val = malloc(sizeof(*val));
+    Jcsn_JValue *val = jcsn_jval_new(J_STRING);
     if (val == NULL)
         goto ret;
 
-    val->type = J_STRING;
     val->data.string = (char*)str;
     val->parsed = true;
 
@@ -306,7 +351,6 @@ Jcsn_AST *jcsn_parse_json(char *jdata) {
             parser.curr_scope = new;
 
             parser.base += 1;
-            jcsn_skip_whitespaces(&parser.base);
         }
 
         // Handle new json array
@@ -339,25 +383,58 @@ Jcsn_AST *jcsn_parse_json(char *jdata) {
             JCSN_LOG_INF("Parsing new json string\n", NULL);
 
             tmp = jcsn_parse_string(&parser);
-            new = jcsn_jstr_new(tmp);
-            new->parent = parser.curr_scope;
-            jcsn_handle_jvalue(&parser, new);
+            if (parser.curr_scope->type == J_ARRAY) {
+                new = jcsn_jstr_new(tmp);
+                new->parent = parser.curr_scope;
+                jcsn_handle_jvalue(&parser, new);
+            }
+            else if (parser.curr_scope->type == J_OBJECT) {
+                if (parser.curr_scope->data.object->situation) {
+                    new = jcsn_jstr_new(tmp);
+                    new->parent = parser.curr_scope;
+                    (void)jcsn_handle_jvalue(&parser, new);
+                } else {
+                    (void)jcsn_jobj_add_name(parser.curr_scope->data.object, tmp);
+                }
+            }
 
             jcsn_skip_whitespaces(&parser.base);
         }
 
         // Handle true/false values (json boolean)
         else if (ch == 't' || ch == 'f') {
-            // TODO: Parse json boolean
+            JCSN_LOG_INF("Parsing new json boolean\n", NULL);
+            if ((tmp = jcsn_exact_start(parser.base, "true"))) {
+                new = jcsn_jval_new(J_BOOL);
+                new->parsed = true;
+                new->data.boolean = 1;
+            } else if ((tmp = jcsn_exact_start(parser.base, "false"))) {
+                new = jcsn_jval_new(J_BOOL);
+                new->parsed = true;
+                new->data.boolean = 0;
+            } else {
+                // TODO: Handle error
+            }
+
+            parser.base = tmp;
+            jcsn_handle_jvalue(&parser, new);
+            jcsn_skip_whitespaces(&parser.base);
         }
 
         // Handle json NULL
         else if (ch == 'n') {
-            // TODO: Parse json null
+            JCSN_LOG_INF("Parsing new json null\n", NULL);
+            if ((tmp = jcsn_exact_start(parser.base, "null"))) {
+                jcsn_handle_jvalue(&parser, NULL);
+                parser.base = tmp;
+                jcsn_skip_whitespaces(&parser.base);
+            }
+            // TODO: Handle error (else block)
         }
 
         // Handle numbers
         else if (jcsn_char_isdigit(ch)) {
+            JCSN_LOG_INF("Parsing new json number\n", NULL);
             // TODO: Parse json number
         }
 
@@ -376,7 +453,7 @@ Jcsn_AST *jcsn_parse_json(char *jdata) {
             parser.base += 1;
         }
         else if (*parser.base == ':') {
-            // Handle json object
+            parser.base += 1;
         }
         jcsn_skip_whitespaces(&parser.base);
     } // end of while loop
