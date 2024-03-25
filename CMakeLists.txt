@@ -26,7 +26,13 @@ if(CMAKE_EXPORT_COMPILE_COMMANDS)
       ${CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES})
 endif()
 
-add_executable(test
+
+add_library(jacson
     src/jacson.c
+)
+
+
+add_executable(test
     test/test.c
 )
+target_link_libraries(test PRIVATE jacson)
