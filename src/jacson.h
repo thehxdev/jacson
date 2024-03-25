@@ -26,6 +26,8 @@ extern "C" {
 
 typedef struct Jcsn_AST Jcsn_AST;
 
+// FIXME: Private types:
+
 // a signed 8-bit integer
 typedef char byte;
 
@@ -117,6 +119,8 @@ typedef struct Jcsn_Parser {
     // It's like scope in programming languages.
     Jcsn_JValue *curr_scope;
 } Jcsn_Parser;
+
+
 
 // Parse json data from bytes into an AST
 Jcsn_AST *jcsn_parse_json(char *jdata);
