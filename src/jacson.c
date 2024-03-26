@@ -1,20 +1,12 @@
 /**
- * Jacson
- *
- * Author: Hossein Khosravi (https://github.com/thehxdev)
- * Description: Json processing library in C.
- * Git: https://github.com/thehxdev/jacson
- *
- *
- * Jacson is developed under MIT License. You can find a copy
- * of license information in the project's github repository:
- * https://github.com/thehxdev/jacson/blob/main/LICENSE
+ * Ignore this file for now...
  */
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
+
 
 /**
  * Includes
@@ -26,7 +18,8 @@ extern "C" {
 #include <string.h>
 
 // Jacson
-#include "jacson.h"
+#include <jacson/jacson.h>
+#include "log.h"
 
 
 
@@ -47,15 +40,6 @@ extern "C" {
 
 // sync left-side pointer with the right-side one
 #define sync_ptrs(ptr1, ptr2) (ptr1) = (ptr2)
-
-#ifdef __JCSN_LOG__
-    #define JCSN_LOG_ERR(format, ...) (void) fprintf(stderr, "[ERROR] " format, __VA_ARGS__)
-    #define JCSN_LOG_INF(format, ...) (void) fprintf(stderr, "[INFO] " format, __VA_ARGS__)
-#else
-    #define JCSN_LOG_ERR(format, ...)
-    #define JCSN_LOG_INF(format, ...)
-#endif // __JCSN_LOG__
-
 
 // Dynamic array default capacity
 #define DARR_DEFAULT_CAP 5
@@ -91,7 +75,7 @@ jcsn_skip_whitespaces(char **ptr) {
 
 
 static inline __attribute__((always_inline)) byte
-jcsn_char_isdigit(char ch) {
+jcsn_isdigit(char ch) {
     return ((ch >= '0') && (ch <= '9'));
 }
 

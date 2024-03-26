@@ -1,23 +1,15 @@
 /**
- * Jacson
- *
- * Author: Hossein Khosravi (https://github.com/thehxdev)
- * Description: Json processing library in C.
- * Git: https://github.com/thehxdev/jacson
- *
- *
- * Jacson is developed under MIT License. You can find a copy of license
- * information in the project's github repository:
- * https://github.com/thehxdev/jacson/blob/main/LICENSE
+ * Ignore this file for now...
  */
 
 
-#ifndef __JACSON_H__
-#define __JACSON_H__
+#ifndef JACSON_JACSON_H
+#define JACSON_JACSON_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
+
 
 #define JACSON_VERSION_MAJOR 0
 #define JACSON_VERSION_MINOR 0
@@ -28,8 +20,6 @@ typedef struct Jcsn_AST Jcsn_AST;
 
 // FIXME: Private types:
 
-// a signed 8-bit integer
-typedef char byte;
 
 
 // json value type
