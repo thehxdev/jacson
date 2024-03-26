@@ -1,6 +1,9 @@
 Jacson - Json parser library in C
 
 
+This project is under heavy development and everything might change in the furure.
+
+
 Architecture:
 
         +------------------+
