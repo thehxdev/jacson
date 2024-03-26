@@ -134,6 +134,7 @@ static byte jcsn_tlist_append(Jcsn_TList *tlist, Jcsn_Token *token) {
 
     Jcsn_Token **t = &tlist->tokens[tlist->len];
     *t = token;
+    tlist->len += 1;
     return 0;
 }
 
@@ -169,12 +170,47 @@ static char *jcsn_parse_jstr(char **base, char **curr) {
 
 // parse a number in json data to it's actual value
 static Jcsn_JNumber jcsn_parse_jnum(char **base, char **curr) {
-    // TODO: Implement jcsn_parse_jnum
+    char ch, *tmp = NULL;
+    byte negative = 0;
+    byte has_point = 0;
     Jcsn_JNumber num = {
         .value = { 0 },
         .type = TK_NULL,
     };
 
+    switch (**base) {
+        case '-':
+            negative = 1;
+        case '+':
+            *base += 1;
+    }
+
+    *curr = (*base + 1);
+    while ((ch = **curr)) {
+        if (jcsn_is_digit(ch)) {
+            *curr += 1;
+        }
+        else if (ch == '.' && jcsn_is_digit(*(*curr += 1))) {
+            // invalid number
+            if (has_point)
+                break;
+            has_point = 1;
+        }
+        else
+            break;
+    }
+
+    tmp = jcsn_substr_ptr(*base, *curr);
+    if (has_point) {
+        num.value.real = (negative) ? (atof(tmp) * -1) : atof(tmp);
+        num.type = TK_DOUBLE;
+    } else {
+        num.value.integer = (negative) ? (atol(tmp) * -1) : atol(tmp);
+        num.type = TK_INTEGER;
+    }
+
+    *base = *curr;
+    xfree(tmp);
     return num;
 }
 
@@ -280,7 +316,8 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
                 tk = jcsn_token_new(tk_type);
                 tk->value.boolean = false;
                 tokenizer.base = tmp;
-            } else {
+            }
+            else {
                 JCSN_LOG_ERR("Invalid token while parsing json boolean value\n", NULL);
                 JCSN_LOG_ERR("Token does not match with \'true\' or \'false\'\n", NULL);
                 jcsn_tlist_free(&tlist);
@@ -290,23 +327,26 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
         } // end tokenize json boolean
 
         else if (ch == '+' || ch == '-' || jcsn_is_digit(ch)) {
-            // TODO: make this shit a seperate function
             num = jcsn_parse_jnum(&tokenizer.base, &tokenizer.curr);
             tk_type = num.type;
-            if (num.type == TK_INTEGER) {
-                tk = jcsn_token_new(tk_type);
-                tk->value.integer = num.value.integer;
-            }
-            else if (num.type == TK_DOUBLE) {
-                tk = jcsn_token_new(tk_type);
-                tk->value.real = num.value.real;
-            }
-            else {
-                JCSN_LOG_ERR("Invalid token while parsing json number value\n", NULL);
-                JCSN_LOG_ERR("Token does not match with a valid number\n", NULL);
-                jcsn_tlist_free(&tlist);
-                return NULL;
-            }
+            switch (num.type) {
+                case TK_INTEGER:
+                    tk = jcsn_token_new(tk_type);
+                    tk->value.integer = num.value.integer;
+                    break;
+
+                case TK_DOUBLE:
+                    tk = jcsn_token_new(tk_type);
+                    tk->value.real = num.value.real;
+                    break;
+
+                default: {
+                    JCSN_LOG_ERR("Invalid token while parsing json number value\n", NULL);
+                    JCSN_LOG_ERR("Token does not match with a valid number\n", NULL);
+                    jcsn_tlist_free(&tlist);
+                    return NULL;
+                }
+            } // end switch(num.type)
             goto append;
         } // end tokenize json number
 
