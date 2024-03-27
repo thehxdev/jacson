@@ -15,8 +15,8 @@
  * https://github.com/thehxdev/jacson/blob/main/LICENSE
  */
 
-#ifndef JACSON_LOG_H
-#define JACSON_LOG_H
+#ifndef __JACSON_LOG_H
+#define __JACSON_LOG_H
 
 #ifdef __cplusplus
 extern "C" {

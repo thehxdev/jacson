@@ -15,8 +15,8 @@
  * https://github.com/thehxdev/jacson/blob/main/LICENSE
  */
 
-#ifndef JACSON_PARSER_H
-#define JACSON_PARSER_H
+#ifndef __JACSON_PARSER_H
+#define __JACSON_PARSER_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,4 +29,3 @@ extern "C" {
 #endif // __cplusplus
 
 #endif // JACSON_PARSER_H
-

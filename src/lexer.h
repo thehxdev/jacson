@@ -15,8 +15,8 @@
  * https://github.com/thehxdev/jacson/blob/main/LICENSE
  */
 
-#ifndef JACSON_LEXER_H
-#define JACSON_LEXER_H
+#ifndef __JACSON_LEXER_H
+#define __JACSON_LEXER_H
 
 #ifdef __cplusplus
 extern "C" {

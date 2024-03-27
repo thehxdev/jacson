@@ -15,8 +15,8 @@
  * https://github.com/thehxdev/jacson/blob/main/LICENSE
  */
 
-#ifndef JACSON_MEM_H
-#define JACSON_MEM_H
+#ifndef __JACSON_MEM_H
+#define __JACSON_MEM_H
 
 #ifdef __cplusplus
 extern "C" {

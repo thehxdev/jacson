@@ -16,8 +16,8 @@
  */
 
 
-#ifndef JACSON_STR_H
-#define JACSON_STR_H
+#ifndef __JACSON_STR_H
+#define __JACSON_STR_H
 
 #ifdef __cplusplus
 extern "C" {
