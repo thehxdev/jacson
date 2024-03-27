@@ -20,6 +20,8 @@
 extern "C" {
 #endif // __cplusplus
 
+
+
 /**
  * Includes
  */
@@ -36,6 +38,7 @@ extern "C" {
 #include "str.h"
 #include "mem.h"
 #include "log.h"
+
 
 
 /**
@@ -74,7 +77,7 @@ typedef struct Jcsn_JNumber {
     } value;
 
     enum Jcsn_Token_T type;
-} Jcsn_JNumber;
+} __attribute__((packed)) Jcsn_JNumber;
 
 
 
@@ -307,19 +310,19 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
 
         else if (ch == 't' || ch == 'f') {
             tk_type = TK_BOOL;
+            tk = jcsn_token_new(tk_type);
             if ((tmp = jcsn_str_exact_start(tokenizer.base, "true"))) {
-                tk = jcsn_token_new(tk_type);
                 tk->value.boolean = true;
                 tokenizer.base = tmp;
             }
             else if ((tmp = jcsn_str_exact_start(tokenizer.base, "false"))) {
-                tk = jcsn_token_new(tk_type);
                 tk->value.boolean = false;
                 tokenizer.base = tmp;
             }
             else {
                 JCSN_LOG_ERR("Invalid token while parsing json boolean value\n", NULL);
                 JCSN_LOG_ERR("Token does not match with \'true\' or \'false\'\n", NULL);
+                jcsn_token_free(&tk);
                 jcsn_tlist_free(&tlist);
                 return NULL;
             }

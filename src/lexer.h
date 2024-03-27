@@ -44,7 +44,7 @@ enum Jcsn_Token_T {
     TK_DOUBLE,
     TK_BOOL,
     TK_NULL,
-};
+} __attribute__((packed));
 
 
 // a Json Token
@@ -56,7 +56,7 @@ typedef struct Jcsn_Token {
         double real;
     } value;
     enum Jcsn_Token_T type;
-} Jcsn_Token;
+} __attribute__((packed)) Jcsn_Token;
 
 
 // a dynamic array to store tokens
@@ -64,7 +64,7 @@ typedef struct Jcsn_TList {
     Jcsn_Token **tokens;
     unsigned long len;
     unsigned long cap;
-} Jcsn_TList;
+} __attribute__((packed)) Jcsn_TList;
 
 
 Jcsn_TList *jcsn_tokenize_json(char *jdata);
