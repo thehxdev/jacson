@@ -93,9 +93,11 @@ static Jcsn_TList *jcsn_tlist_new(size_t cap) {
         return NULL;
     }
 
-    tlist->tokens = NULL;
-    tlist->cap = cap;
-    tlist->len = 0;
+    *tlist = (Jcsn_TList) {
+        .tokens = NULL,
+        .cap = cap,
+        .len = 0,
+    };
 
     return tlist;
 };
