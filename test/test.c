@@ -7,6 +7,9 @@ int main(void) {
     char *jdata = "{ \"msg\": \"Hello World!\", \"status\": 200, \"ok\": true, \"float_num\": 224.123, \"neg\": -90 }";
     Jcsn_Token *t = NULL;
     Jcsn_TList *tks = jcsn_tokenize_json(jdata);
+    if (tks == NULL)
+        return 1;
+
     for (size_t i = 0; i < tks->len; i++) {
         t = tks->tokens[i];
         printf("token = %p -> ", t);
@@ -56,6 +59,8 @@ int main(void) {
                 break;
         }
     }
+
+    jcsn_tlist_free(&tks);
     return 0;
 }
 
