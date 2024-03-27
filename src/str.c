@@ -83,6 +83,8 @@ char *jcsn_str_exact_start(const char *source, const char *query) {
             s += 1;
             q  += 1;
         }
+        else
+            break;
     }
 
     return (*q == '\0') ? s : NULL;
