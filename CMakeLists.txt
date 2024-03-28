@@ -32,6 +32,7 @@ add_library(jacson
     src/lexer.c
     src/parser.c
     src/str.c
+    src/validator.c
 )
 target_include_directories(jacson PRIVATE "./include")
 
