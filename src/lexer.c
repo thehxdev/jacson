@@ -151,12 +151,15 @@ static char *jcsn_parse_jstr(char **base, char **curr) {
     // skip the `"` character
     *curr = (*base += 1);
 
-    while (**curr != '\"') {
+    while (**curr && **curr != '\"') {
         *curr += 1;
         // skip `"` scape sequance
         if (**curr == '\\' && *(*curr+1) == '\"')
             *curr += 2;
     }
+
+    if (**curr == '\0')
+        return NULL;
 
     str = jcsn_substr_ptr(*base, *curr);
 #ifdef __JCSN_TRACE__
@@ -293,6 +296,13 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
             tk_type = TK_STRING;
             tk = jcsn_token_new(tk_type);
             tk->value.string = jcsn_parse_jstr(&tokenizer.base, &tokenizer.curr);
+            if (tk->value.string == NULL) {
+                JCSN_LOG_ERR("Failed to parse json string\n", NULL);
+                JCSN_LOG_ERR("Check json data syntax for errors\n", NULL);
+                jcsn_token_free(&tk);
+                jcsn_tlist_free(&tlist);
+                return NULL;
+            }
             goto append;
         } // end tokenize json string
 
@@ -364,7 +374,6 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
         tk = jcsn_token_new(tk_type);
 append:
         jcsn_tlist_append(tlist, tk);
-        // jcsn_seek_next_token(&tokenizer.base);
         jcsn_skip_whitespaces(&tokenizer.base);
     } // end while loop
 
