@@ -199,9 +199,8 @@ static Jcsn_JNumber jcsn_parse_jnum(char **base, char **curr) {
             *curr += 1;
         }
         else if (ch == '.' && jcsn_is_digit(*(*curr += 1))) {
-            // invalid number
-            if (has_point)
-                break;
+            if (has_point) // invalid number
+                return num;
             has_point = 1;
         }
         else
