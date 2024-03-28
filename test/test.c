@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "../src/types.h"
 #include "../src/lexer.h"
+#include "../src/validator.h"
 
 
 int main(void) {
@@ -59,7 +60,9 @@ int main(void) {
                 break;
         }
     }
+    printf("\n\n");
 
+    jcsn_validate_tokens(tks);
     jcsn_tlist_free(&tks);
     return 0;
 }
