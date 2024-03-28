@@ -380,6 +380,9 @@ append:
 }
 
 
+Jcsn_Token *jcsn_tlist_get(Jcsn_Token **tks, size_t len, long idx) {
+    return ((idx >= 0) && (idx < (long)len)) ? tks[idx] : NULL;
+}
 
 #ifdef __cplusplus
 }
