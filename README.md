@@ -31,7 +31,10 @@ Jacson architecture
 
 List of improvements and features to add:
 - [ ] Free all memory used by Jacson
+- [ ] Handle scape sequences in string data
 - [ ] Documentation for Jacson's public API
+- [ ] Error handling and reporting errors to top-level callers
 - [ ] Interface to interact with AST (Getting/Changing data)
 - [ ] More advanced json syntax validation
 - [ ] Lazy evaluation capabilities
+- [ ] Write tests for each module
