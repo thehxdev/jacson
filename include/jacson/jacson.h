@@ -1,5 +1,18 @@
 /**
- * Ignore this file for now...
+ * Jacson
+ *
+ * Author: Hossein Khosravi (https://github.com/thehxdev)
+ * Description: Json processing library in C.
+ * Git: https://github.com/thehxdev/jacson
+ *
+ * ------------------------------------------------------------ *
+ * Main Module
+ * Parse tokens into an AST.
+ * ------------------------------------------------------------ *
+ *
+ * Jacson is developed under MIT License. You can find a copy
+ * of license information in the project's github repository:
+ * https://github.com/thehxdev/jacson/blob/main/LICENSE
  */
 
 
@@ -11,23 +24,38 @@ extern "C" {
 #endif // __cplusplus
 
 
+/**
+ * Macros and constants
+ */
+
 #define JACSON_VERSION_MAJOR 0
 #define JACSON_VERSION_MINOR 0
 #define JACSON_VERSION_PATCH 1
 #define JACSON_VERSION "0.0.1"
 
+#ifndef byte
+    #define byte char
+#endif // byte
+
+
+
+/**
+ * Types
+ */
+
 typedef struct Jcsn_AST Jcsn_AST;
 
-// FIXME: Private types:
 
-
+// FIXME: Implement an interface for interacting with AST
+// and make these types private.
 
 // json value type
 enum Jcsn_JVal_T {
     J_OBJECT,
     J_ARRAY,
     J_STRING,
-    J_NUMBER,
+    J_INTEGER,
+    J_REAL, // double
     J_BOOL,
     J_NULL,
 };
@@ -37,9 +65,7 @@ union __Jcsn_JValue {
     struct Jcsn_JObject *object;
     char *string;
     byte boolean;
-    long integer; // Handle all numbers as integers for now...
-
-    // Don't handle floating point numbers yet...
+    long integer;
     double real; // Fortran programmer vibe, huh? :)
 };
 
@@ -71,49 +97,31 @@ typedef struct Jcsn_JObject {
     char **names;
     unsigned long len;
     unsigned long cap;
-
-    // Json Objcet situation
-    // If this flag is set to 1, indicates that a `name` in json object
-    // is waiting for it's value to be set. Otherwise parser can add a
-    // new pair or end json object parsing.
-    byte situation;
 } Jcsn_JObject;
 
 
 struct Jcsn_AST {
     // Root of AST.
     // It can be either a Json Object or Json Array
-    Jcsn_JValue *robj;
+    Jcsn_JValue *root;
     unsigned long depth;
 };
 
 
-typedef struct Jcsn_Parser {
-    // Since we're working with pointer arithmic, keep a pointer to
-    // first character in json data to prevent out of bound access
-    // to memory locations if parser wants to go backward.
-    char *first;
 
-    // Pointer to base character
-    // (Used to extract tokens (sub-strings) with `curr` field)
-    char *base;
-
-    // Pointer to current character in parser
-    char *curr;
-
-    // Current data collection that we append data to it.
-    // A data collection in json is either a json object
-    // or a json array.
-    // Just keep a pointer to it, to know where we add
-    // the parsed data.
-    // It's like scope in programming languages.
-    Jcsn_JValue *curr_scope;
-} Jcsn_Parser;
-
-
+/**
+ * Module Public API
+ */
 
 // Parse json data from bytes into an AST
 Jcsn_AST *jcsn_parse_json(char *jdata);
+
+// Print the parsed AST
+void jcsn_ast_print(Jcsn_AST *ast);
+
+// Free all memory used by ast
+void jcsn_ast_free(Jcsn_AST **ast);
+
 
 
 #ifdef __cplusplus

@@ -1,11 +1,26 @@
 /**
- * Ignore this file for now...
+ * Jacson
+ *
+ * Author: Hossein Khosravi (https://github.com/thehxdev)
+ * Description: Json processing library in C.
+ * Git: https://github.com/thehxdev/jacson
+ *
+ * ------------------------------------------------------------ *
+ * Main Module
+ * Parse tokens into an AST.
+ * ------------------------------------------------------------ *
+ *
+ * Jacson is developed under MIT License. You can find a copy
+ * of license information in the project's github repository:
+ * https://github.com/thehxdev/jacson/blob/main/LICENSE
  */
 
+// TODO: Implement parser module
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
+
 
 
 /**
@@ -13,130 +28,56 @@ extern "C" {
  */
 
 // Standard Library
-#include <stdio.h>
+#ifdef __JCSN_TRACE__
+    #include <stdio.h>
+#endif // __JCSN_TRACE__
 #include <stdlib.h>
-#include <string.h>
 
 // Jacson
-#include <jacson/jacson.h>
 #include "log.h"
+#include "mem.h"
+#include "types.h"
+#include "lexer.h"
+#include "validator.h"
+#include <jacson/jacson.h>
 
 
 
 /**
- * Macros
+ * Macros and Constants
  */
 
-// un-comment line below to enable logging (re-compilation needed)
-#define __JCSN_LOG__
-
-#ifndef true
-    #define true 1
-#endif // true
-
-#ifndef false
-    #define false 0
-#endif // false
-
-// sync left-side pointer with the right-side one
-#define sync_ptrs(ptr1, ptr2) (ptr1) = (ptr2)
-
 // Dynamic array default capacity
-#define DARR_DEFAULT_CAP 5
+#define DARR_DEF_CAP 20
 
-// Since `free` ignores NULL pointers, set pointers to `NULL` after
-// calling `free` on them to prevent double free error.
-#define xfree(ptr) do { free((ptr)); (ptr) = NULL; } while (0)
 
 
 /**
  * Types
  */
 
-// FIXME: Put all private types from `jacson.h` here...
+typedef struct Jcsn_Parser {
+    // Pointer to previous token
+    Jcsn_Token *prev;
+
+    // Pointer to current token
+    Jcsn_Token *curr;
+
+    // Pointer to next token
+    Jcsn_Token *next;
+
+    // Current data collection that we append data to it.
+    // A data collection in json is either a json object or a json array.
+    // Just keep a pointer to it, to know where we add the parsed data.
+    // It's like scope in programming languages.
+    Jcsn_JValue *scope;
+} Jcsn_Parser;
+
 
 
 /**
- * Private API
+ * Module Private API
  */
-
-// check is a character is a whitespace
-static inline __attribute__((always_inline)) byte
-jcsn_is_whitespace(char ch) {
-    return (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r');
-}
-
-
-static inline __attribute__((always_inline)) void
-jcsn_skip_whitespaces(char **ptr) {
-    if (*ptr == NULL) return;
-    while (**ptr && (jcsn_is_whitespace(**ptr))) *ptr += 1;
-}
-
-
-static inline __attribute__((always_inline)) byte
-jcsn_isdigit(char ch) {
-    return ((ch >= '0') && (ch <= '9'));
-}
-
-
-// `source` is exactly starts with `query`
-static char *jcsn_exact_start(char *source, char *query) {
-    // example: s = "Hello World!", q = "Hello" -> True
-    register char *s = source;
-    register char *q = query;
-
-    if (*s != *q)
-        return NULL;
-
-    while (*s && *q) {
-        if (*s == *q) {
-            s += 1;
-            q  += 1;
-        }
-    }
-
-    return (*q == '\0') ? s : NULL;
-}
-
-
-// Parse a string from json data
-static char *jcsn_parse_string(Jcsn_Parser *parser) {
-    // "a json string example"
-    //  ^                    ^
-    //  *base                *curr
-    //  |--------------------|
-    //          delta
-
-    char *str = NULL;
-    size_t delta = 0;
-    if (*parser->base != '\"')
-        goto ret;
-
-    sync_ptrs(parser->curr, parser->base += 1);
-
-    while (*parser->curr != '\"') {
-        parser->curr += 1;
-        // skip '\"' scape sequance
-        if (*parser->curr == '\\' && *(parser->curr+1) == '*')
-            parser->curr += 2;
-    }
-
-    delta = parser->curr - parser->base;
-    str = calloc(delta + 1, sizeof(char));
-    if (str == NULL) {
-        JCSN_LOG_ERR("%s: Failed to allocate memory for new sub-string\n", __FUNCTION__);
-        goto ret;
-    }
-    strncpy(str, parser->base, delta);
-
-    sync_ptrs(parser->base, parser->curr);
-    // put base pointer after last `"` character
-    parser->base += 1;
-ret:
-    return str;
-}
-
 
 // Construct a general json value
 static Jcsn_JValue *jcsn_jval_new(enum Jcsn_JVal_T type) {
@@ -144,8 +85,11 @@ static Jcsn_JValue *jcsn_jval_new(enum Jcsn_JVal_T type) {
     if (val == NULL)
         goto ret;
 
-    val->type = type;
-    val->parsed = false;
+    *val = (Jcsn_JValue) {
+        .type = type,
+        .parsed = false,
+        .parent = NULL,
+    };
 
 ret:
     return val;
@@ -166,11 +110,13 @@ static Jcsn_JValue *jcsn_jobj_new(size_t cap) {
         goto ret;
     }
 
-    (*obj)->len = 0;
-    (*obj)->cap = cap;
-    // TODO: Handle null pointers
-    (*obj)->names = malloc(sizeof(char*) * cap);
-    (*obj)->values = malloc(sizeof(Jcsn_JValue*) * cap);
+    **obj = (Jcsn_JObject) {
+        .len = 0,
+        .cap = cap,
+        // TODO: Handle null pointer
+        .names = malloc(sizeof(char*) * cap),
+        .values = malloc(sizeof(Jcsn_JValue*) * cap),
+    };
 
 ret:
     return jval;
@@ -191,7 +137,6 @@ static byte jcsn_jobj_add_name(Jcsn_JObject *jobj, const char *name) {
     char **tmp = &jobj->names[jobj->len];
     *tmp = (char*)name;
     jobj->len += 1;
-    jobj->situation = 1;
     return 0;
 }
 
@@ -199,7 +144,6 @@ static byte jcsn_jobj_add_name(Jcsn_JObject *jobj, const char *name) {
 static byte jcsn_jobj_set_value(Jcsn_JObject *jobj, Jcsn_JValue *value) {
     Jcsn_JValue **tmp = &jobj->values[jobj->len-1];
     *tmp = value;
-    jobj->situation = 0;
     return 0;
 }
 
@@ -212,10 +156,12 @@ static Jcsn_JValue *jcsn_jarr_new(size_t cap) {
     Jcsn_JArray **arr = &jval->data.array;
 
     *arr = malloc(sizeof(**arr));
-    // TODO: Handle null pointer
-    (*arr)->vals = malloc(sizeof(Jcsn_JValue*) * cap);
-    (*arr)->len = 0;
-    (*arr)->cap = cap;
+    **arr = (Jcsn_JArray) {
+        .len = 0,
+        .cap = cap,
+        // TODO: Handle null pointer
+        .vals = malloc(sizeof(Jcsn_JValue*) * cap),
+    };
 
 ret:
     return jval;
@@ -239,23 +185,26 @@ static byte jcsn_jarr_append(Jcsn_JArray *jarr, Jcsn_JValue *value) {
 }
 
 
+// stat = 1 -> OK
+// stat = 0 -> ERROR
 static byte jcsn_handle_jvalue(Jcsn_Parser *parser, Jcsn_JValue *value) {
-    byte stat = 0;
-    Jcsn_JValue **scope = &parser->curr_scope;
+    byte stat = 1;
+    Jcsn_JValue **scope = &parser->scope;
 
     if (*scope == NULL) {
         if (value->type == J_OBJECT || value->type == J_ARRAY)
             *scope = value;
         else
-            stat = 1;
+            stat = 0;
         goto ret;
     }
 
+    value->parent = *scope;
     if ((*scope)->type == J_OBJECT)
-        if ((*scope)->data.object->situation)
+        if (parser->prev->type == ':')
             (void)jcsn_jobj_set_value((*scope)->data.object, value);
-        else
-            stat = 1;
+        else 
+            stat = 0;
     else if ((*scope)->type == J_ARRAY)
         (void)jcsn_jarr_append((*scope)->data.array, value);
 
@@ -278,156 +227,129 @@ ret:
 }
 
 
-
 /**
- * Public API
+ * Module Public API
  */
 
 // Parse json data from bytes into an AST
 Jcsn_AST *jcsn_parse_json(char *jdata) {
-    Jcsn_AST *ast = malloc(sizeof(*ast));
-    ast->robj = NULL;
-    ast->depth = 0;
-
-    if (jdata == NULL)
+    Jcsn_TList *tlist = jcsn_tokenize_json(jdata);
+    if (!jcsn_validate_tokens(tlist)) {
+        JCSN_LOG_ERR("Provided json data is not valid\n", NULL);
+        JCSN_LOG_INF("Returning NULL\n", NULL);
         return NULL;
+    }
 
-    Jcsn_Parser parser = {
-        .first = jdata,
-        .base  = jdata,
-        .curr  = jdata,
-        .curr_scope = NULL,
+    long len = (long)tlist->len, i;
+    Jcsn_JValue *val = NULL;
+    register Jcsn_Token **tks = tlist->tokens;
+
+    Jcsn_Parser parser = { 0 };
+    Jcsn_AST *ast = malloc(sizeof(*ast));
+    *ast = (Jcsn_AST) {
+        .root = NULL,
+        .depth = 0,
     };
 
-    jcsn_skip_whitespaces(&parser.base);
 
-    char ch, *tmp;
-    Jcsn_JValue *new = NULL;
-    while ((ch = *parser.base) != '\0') {
+    for (i = 0; i < len; i++) {
+        parser.prev = jcsn_tlist_get(tks, len, i-1);
+        parser.curr = jcsn_tlist_get(tks, len, i);
+        parser.next = jcsn_tlist_get(tks, len, i+1);
 
-        // Handle new json object
-        if (ch == '{') {
-            JCSN_LOG_INF("Parsing new json object\n", NULL);
-
-            new = jcsn_jobj_new(DARR_DEFAULT_CAP);
-            new->parent = parser.curr_scope;
-
-            jcsn_handle_jvalue(&parser, new);
-            parser.curr_scope = new;
-
-            parser.base += 1;
-        }
-
-        // Handle new json array
-        else if (ch == '[') {
-            JCSN_LOG_INF("Parsing new json array\n", NULL);
-
-            new = jcsn_jarr_new(DARR_DEFAULT_CAP);
-            new->parent = parser.curr_scope;
-
-            jcsn_handle_jvalue(&parser, new);
-            parser.curr_scope = new;
-
-            parser.base += 1;
-        }
-
-        // Handle json object/array ending
-        else if (ch == '}' || ch == ']') {
-            JCSN_LOG_INF("Exiting a json scope\n", NULL);
-
-            parser.curr_scope->parsed = true;
-            if (parser.curr_scope->parent == NULL)
-                ast->robj = parser.curr_scope;
-            parser.curr_scope = parser.curr_scope->parent;
-
-            parser.base += 1;
-        }
-
-        // Handle strings
-        else if (ch == '\"') {
-            JCSN_LOG_INF("Parsing new json string\n", NULL);
-
-            tmp = jcsn_parse_string(&parser);
-            if (parser.curr_scope->type == J_ARRAY) {
-                new = jcsn_jstr_new(tmp);
-                new->parent = parser.curr_scope;
-                jcsn_handle_jvalue(&parser, new);
+        switch (parser.curr->type) {
+            case '{': {
+                val = jcsn_jobj_new(DARR_DEF_CAP);
+                jcsn_handle_jvalue(&parser, val);
+                parser.scope = val;
+                ast->depth += 1;
             }
-            else if (parser.curr_scope->type == J_OBJECT) {
-                if (parser.curr_scope->data.object->situation) {
-                    new = jcsn_jstr_new(tmp);
-                    new->parent = parser.curr_scope;
-                    (void)jcsn_handle_jvalue(&parser, new);
-                } else {
-                    (void)jcsn_jobj_add_name(parser.curr_scope->data.object, tmp);
+            break;
+
+            case '[': {
+                val = jcsn_jarr_new(DARR_DEF_CAP);
+                jcsn_handle_jvalue(&parser, val);
+                parser.scope = val;
+                ast->depth += 1;
+            }
+            break;
+
+            case '}':
+            case ']': {
+                parser.scope->parsed = true;
+                if (parser.scope->parent == NULL)
+                    ast->root = parser.scope;
+                parser.scope = parser.scope->parent;
+            }
+            break;
+
+            case TK_STRING: {
+                if (parser.scope->type == J_OBJECT) { 
+                    if (parser.next->type == ':')
+                        jcsn_jobj_add_name(parser.scope->data.object, parser.curr->value.string);
+                    else {
+                        val = jcsn_jstr_new(parser.curr->value.string);
+                        jcsn_handle_jvalue(&parser, val);
+                    }
+                } else if (parser.scope->type == J_ARRAY) {
+                    val = jcsn_jval_new(J_STRING);
+                    val->parent = parser.scope;
+                    val->data.string = parser.curr->value.string;
+                    jcsn_handle_jvalue(&parser, val);
                 }
             }
+            break;
 
-            jcsn_skip_whitespaces(&parser.base);
-        }
-
-        // Handle true/false values (json boolean)
-        else if (ch == 't' || ch == 'f') {
-            JCSN_LOG_INF("Parsing new json boolean\n", NULL);
-            if ((tmp = jcsn_exact_start(parser.base, "true"))) {
-                new = jcsn_jval_new(J_BOOL);
-                new->parsed = true;
-                new->data.boolean = 1;
-            } else if ((tmp = jcsn_exact_start(parser.base, "false"))) {
-                new = jcsn_jval_new(J_BOOL);
-                new->parsed = true;
-                new->data.boolean = 0;
-            } else {
-                // TODO: Handle error
+            case TK_BOOL: {
+                val = jcsn_jval_new(J_BOOL);
+                val->data.boolean = parser.curr->value.boolean;
+                jcsn_handle_jvalue(&parser, val);
             }
+            break;
 
-            parser.base = tmp;
-            jcsn_handle_jvalue(&parser, new);
-            jcsn_skip_whitespaces(&parser.base);
-        }
-
-        // Handle json NULL
-        else if (ch == 'n') {
-            JCSN_LOG_INF("Parsing new json null\n", NULL);
-            if ((tmp = jcsn_exact_start(parser.base, "null"))) {
-                jcsn_handle_jvalue(&parser, NULL);
-                parser.base = tmp;
-                jcsn_skip_whitespaces(&parser.base);
+            case TK_NULL: {
+                val = jcsn_jval_new(J_NULL);
+                jcsn_handle_jvalue(&parser, val);
             }
-            // TODO: Handle error (else block)
-        }
+            break;
 
-        // Handle numbers
-        else if (jcsn_char_isdigit(ch)) {
-            JCSN_LOG_INF("Parsing new json number\n", NULL);
-            // TODO: Parse json number
-        }
+            case TK_INTEGER: {
+                val = jcsn_jval_new(J_INTEGER);
+                val->data.integer = parser.curr->value.integer;
+                jcsn_handle_jvalue(&parser, val);
+            }
+            break;
 
-        // Everything else is an error
-        else {
-            JCSN_LOG_ERR("%s: Failed to parse json data\n", __FUNCTION__);
-            JCSN_LOG_ERR("%s: Invalid character: %c\n", __FUNCTION__, ch);
-            goto ret;
-        }
+            case TK_DOUBLE: {
+                val = jcsn_jval_new(J_REAL);
+                val->data.real = parser.curr->value.real;
+                jcsn_handle_jvalue(&parser, val);
+            }
+            break;
 
-        // reached root node in ast (end of parsing)
-        if (parser.curr_scope == NULL)
-            goto ret;
+            default: break;
+        } // end switch (curr->type)
+    } // end for loop
 
-        if (*parser.base == ',') {
-            parser.base += 1;
-        }
-        else if (*parser.base == ':') {
-            parser.base += 1;
-        }
-        jcsn_skip_whitespaces(&parser.base);
-    } // end of while loop
-
-ret:
+    jcsn_tlist_free(&tlist, false);
     return ast;
 }
+
+
+void jcsn_ast_print(Jcsn_AST *ast) {
+    // TODO: Implement ast printer
+    (void)ast;
+}
+
+
+void jcsn_ast_free(Jcsn_AST **ast) {
+    // TODO: Implement jcsn_ast_free
+    (void)ast;
+}
+
 
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
+
