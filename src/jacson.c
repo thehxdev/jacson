@@ -15,8 +15,6 @@
  * https://github.com/thehxdev/jacson/blob/main/LICENSE
  */
 
-// TODO: Implement parser module
-
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
