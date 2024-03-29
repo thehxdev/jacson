@@ -33,7 +33,9 @@ extern "C" {
 
 
 // a signed 8-bit integer
-typedef char byte;
+#ifndef byte
+    #define byte char
+#endif // byte
 
 
 #ifdef __cplusplus
