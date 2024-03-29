@@ -30,6 +30,8 @@ endif()
 
 add_library(jacson
     src/jacson.c
+    src/parser.c
+    src/jvalue.c
     src/lexer.c
     src/str.c
     src/validator.c
