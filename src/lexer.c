@@ -117,10 +117,10 @@ static Jcsn_Token *jcsn_token_new(enum Jcsn_Token_T type) {
 
 
 // Free a token from memory
-static void jcsn_token_free(Jcsn_Token **token) {
+static void jcsn_token_free(Jcsn_Token **token, byte free_strings) {
     Jcsn_Token *t = *token;
     if (t) {
-        if (t->type == TK_STRING)
+        if (t->type == TK_STRING && free_strings)
             xfree(t->value.string);
         xfree(t);
     }
@@ -228,11 +228,11 @@ static Jcsn_JNumber jcsn_parse_jnum(char **base, char **curr) {
  */
 
 // Free all memory allocated by a token list
-void jcsn_tlist_free(Jcsn_TList **tlist) {
+void jcsn_tlist_free(Jcsn_TList **tlist, byte free_strings) {
     Jcsn_TList *tl = *tlist;
     if (tl) {
         for (size_t i = 0; i < tl->len; i++)
-            jcsn_token_free(&tl->tokens[i]);
+            jcsn_token_free(&tl->tokens[i], free_strings);
         xfree(tl->tokens);
         xfree(tl);
     }
@@ -298,8 +298,8 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
             if (tk->value.string == NULL) {
                 JCSN_LOG_ERR("Failed to parse json string\n", NULL);
                 JCSN_LOG_ERR("Check json data syntax for errors\n", NULL);
-                jcsn_token_free(&tk);
-                jcsn_tlist_free(&tlist);
+                jcsn_token_free(&tk, true);
+                jcsn_tlist_free(&tlist, true);
                 return NULL;
             }
             goto append;
@@ -314,7 +314,7 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
             } else {
                 JCSN_LOG_ERR("Invalid token while parsing json null\n", NULL);
                 JCSN_LOG_ERR("Token does not match with \'null\'\n", NULL);
-                jcsn_tlist_free(&tlist);
+                jcsn_tlist_free(&tlist, true);
                 return NULL;
             }
         } // end tokenize json null
@@ -333,8 +333,8 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
             else {
                 JCSN_LOG_ERR("Invalid token while parsing json boolean value\n", NULL);
                 JCSN_LOG_ERR("Token does not match with \'true\' or \'false\'\n", NULL);
-                jcsn_token_free(&tk);
-                jcsn_tlist_free(&tlist);
+                jcsn_token_free(&tk, true);
+                jcsn_tlist_free(&tlist, true);
                 return NULL;
             }
             goto append;
@@ -357,7 +357,7 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
                 default: {
                     JCSN_LOG_ERR("Invalid token while parsing json number value\n", NULL);
                     JCSN_LOG_ERR("Token does not match with a valid number\n", NULL);
-                    jcsn_tlist_free(&tlist);
+                    jcsn_tlist_free(&tlist, true);
                     return NULL;
                 }
             } // end switch(num.type)
@@ -366,7 +366,7 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
 
         else {
             JCSN_LOG_ERR("Invalid character while parsing json data: %c (ascii: %d)\n", ch, ch);
-            jcsn_tlist_free(&tlist);
+            jcsn_tlist_free(&tlist, true);
             return NULL;
         }
 
