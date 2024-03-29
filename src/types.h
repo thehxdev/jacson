@@ -39,7 +39,7 @@ extern "C" {
 
 
 #ifdef __cplusplus
-extern "C" {
+}
 #endif // __cplusplus
 
 #endif // JACSON_TYPES_H
