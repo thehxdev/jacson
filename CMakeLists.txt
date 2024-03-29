@@ -29,8 +29,8 @@ endif()
 
 
 add_library(jacson
+    src/jacson.c
     src/lexer.c
-    src/parser.c
     src/str.c
     src/validator.c
 )
