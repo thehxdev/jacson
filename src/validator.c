@@ -139,14 +139,6 @@ byte jcsn_validate_tokens(Jcsn_TList *tlist) {
                 }
             } break;
 
-            case TK_STRING: {
-                if ((prev->type == '{' || prev->type == ',') && next->type != ':') {
-                    JCSN_LOG_ERR("Expected \':\' character after json string \"%s\"", curr->value.string);
-                    stat = 0;
-                    goto ret;
-                }
-            } break;
-
             default: break;
         } // end switch(curr->type)
     } // end for loop
