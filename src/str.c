@@ -102,7 +102,7 @@ char *jcsn_substr_ptr(const char *start, const char *end) {
     char *str = NULL;
     size_t delta = 0;
 
-    if (end <= start) {
+    if (end < start) {
         JCSN_LOG_INF("Ending address (%p) is lower than starting address (%p)\n", end, start);
         JCSN_LOG_INF("Returning NULL\n", NULL);
         goto ret;
