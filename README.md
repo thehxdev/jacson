@@ -1,10 +1,8 @@
 # Jacson
-Jacson is a Json data processing library in C.
-
-**If you are reading the source code, ignore `jacson.h` and `jacson.c` files for now.**
+Jacson is a simple Json parsing library in C that builds an AST from raw json data.
 
 > [!WARNING]
-> This project is under heavy development and everything might change in the furure.
+> This project is under development and everything might change in the future.
 
 
 ## Architecture:
