@@ -25,3 +25,13 @@ Jacson architecture
     |      Parser      |
     +------------------+
 ```
+
+
+## TODO
+
+List of improvements and features to add:
+- [ ] Free all memory used by Jacson
+- [ ] Documentation for Jacson's public API
+- [ ] Interface to interact with AST (Getting/Changing data)
+- [ ] More advanced json syntax validation
+- [ ] Lazy evaluation capabilities
