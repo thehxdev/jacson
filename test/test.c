@@ -1,69 +1,22 @@
 #include <stdio.h>
-#include "../src/types.h"
-#include "../src/lexer.h"
-#include "../src/validator.h"
+#include <jacson/jacson.h>
 
 
 int main(void) {
-    char *jdata = "{ \"msg\": \"Hello World!\", \"status\": 200, \"ok\": true, \"float_num\": 224.123, \"neg\": -90 }";
-    Jcsn_Token *t = NULL;
-    Jcsn_TList *tks = jcsn_tokenize_json(jdata);
-    if (tks == NULL)
+    char *jdata = "{ \"arr\": [ { \"msg\": \"Hello From AST!\" } ], \"status\": 200, \"ok\": true, \"float_num\": 224.123, \"neg\": -90 }";
+    Jcsn_AST *ast = jcsn_parse_json(jdata);
+    if (!ast)
         return 1;
+    printf("AST Depth = %zu\n\n", ast->depth);
 
-    for (size_t i = 0; i < tks->len; i++) {
-        t = tks->tokens[i];
-        printf("token = %p -> ", t);
-        switch (t->type) {
-            case TK_INTEGER:
-                printf("integer = %ld\n", t->value.integer);
-                break;
+    Jcsn_JValue *arr = ast->root->data.object->values[0];
+    Jcsn_JValue *inner_obj = arr->data.array->vals[0];
+    printf("%s: %s\n",
+           inner_obj->data.object->names[0],
+           inner_obj->data.object->values[0]->data.string);
 
-            case TK_DOUBLE:
-                printf("double = %.3lf\n", t->value.real);
-                break;
-
-            case TK_STRING:
-                printf("string = %s\n", t->value.string);
-                break;
-
-            case TK_BOOL:
-                printf("boolean = %d\n", t->value.boolean);
-                break;
-
-            case TK_NULL:
-                printf("null\n");
-                break;
-
-            case TK_OBJ_BEG:
-                printf("{\n");
-                break;
-
-            case TK_OBJ_END:
-                printf("}\n");
-                break;
-
-            case TK_ARR_BEG:
-                printf("[\n");
-                break;
-
-            case TK_ARR_END:
-                printf("]\n");
-                break;
-
-            case TK_SET:
-                printf(":\n");
-                break;
-
-            case TK_COMMA:
-                printf(",\n");
-                break;
-        }
-    }
-    printf("\n\n");
-
-    jcsn_validate_tokens(tks);
-    jcsn_tlist_free(&tks);
+    // Not implemented yet
+    jcsn_ast_free(&ast);
     return 0;
 }
 
