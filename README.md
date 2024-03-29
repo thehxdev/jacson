@@ -30,7 +30,7 @@ Jacson architecture
 ## TODO
 
 List of improvements and features to add:
-- [ ] Free all memory used by Jacson
+- [x] Free all memory used by Jacson (without recursion)
 - [ ] Handle scape sequences in string data
 - [ ] Documentation for Jacson's public API
 - [ ] Error handling and reporting errors to top-level callers
