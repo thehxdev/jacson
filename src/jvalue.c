@@ -7,7 +7,7 @@
  *
  * ------------------------------------------------------------ *
  * Json Value Module
- * Define json values and related functionalities.
+ * Json value related functionalities
  * ------------------------------------------------------------ *
  *
  * Jacson is developed under MIT License. You can find a copy

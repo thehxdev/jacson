@@ -228,6 +228,7 @@ void jcsn_ast_free(Jcsn_AST **ast) {
     Jcsn_JArray *arr;
     Jcsn_JValue *scope = (*ast)->root, *curr = NULL, *parent;
 
+    // Free the AST without recursion
 again:
     while (1) {
         if (scope->type == J_OBJECT) { // handle json object
