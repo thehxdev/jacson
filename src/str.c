@@ -38,25 +38,9 @@ extern "C" {
 #include "str.h"
 
 
-
 /**
  * Module Public API
  */
-
-byte jcsn_is_whitespace(const char ch) {
-    return (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r');
-}
-
-
-void jcsn_skip_whitespaces(char **ptr) {
-    if (*ptr == NULL) return;
-    while (**ptr && (jcsn_is_whitespace(**ptr))) *ptr += 1;
-}
-
-
-byte jcsn_is_digit(const char ch) {
-    return ((ch >= '0') && (ch <= '9'));
-}
 
 
 // `source` string exactly starts with `query`

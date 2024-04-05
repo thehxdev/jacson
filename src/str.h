@@ -25,11 +25,26 @@ extern "C" {
 
 
 
-byte jcsn_is_whitespace(const char ch);
+/**
+ * Macros and Constants
+ */
 
-byte jcsn_is_digit(const char ch);
+#define jcsn_is_whitespace(ch) \
+    ((ch) == ' ' || (ch) == '\t' || (ch) == '\n' || ch == '\r')
 
-void jcsn_skip_whitespaces(char **ptr);
+
+#define jcsn_skip_whitespaces(ptr) \
+    while ((**(ptr)) && ((jcsn_is_whitespace(**(ptr))))) *(ptr) += 1
+
+
+#define jcsn_is_digit(ch) \
+    (((ch) >= '0') && ((ch) <= '9'))
+
+
+
+/**
+ * Module Public API
+ */
 
 // `source` string exactly starts with `query`.
 char *jcsn_str_exact_start(const char *source, const char *query);
