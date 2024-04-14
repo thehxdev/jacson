@@ -5,20 +5,27 @@ Jacson is a simple Json parsing library and query engine in C (in ~1100 LoC).
 > This project is just a simple json parser with simple query engine. Don't use this library for real programs.
 
 
+## Features
+
+- By not using recursion Jacson can handle deeply nested structures.
+- Simple Public API
+
+
 ## Build
-To build Jacson, you need a C compiler and `cmake` installed on your system.
+To build Jacson, you need a C compiler (`gcc` or `clang`), `cmake` and `make` installed on your system.
 
 ```bash
 git clone --depth=1 --branch=main https://github.com/thehxdev/jacson
 
 cd jacson
 
-mkdir -p build && cmake -B build/ -S .
+mkdir -p build && cmake -B build -S .
 
 cmake --build build
 ```
 
-Then you can use `libjacson.a` file in `build` directory. Or use `test` program in `build` directory to parse a json file and query data from it.
+Then you can use `libjacson.a` file for your projects in `build` directory and header files in `include` directory.
+Or use `test` program in `build` directory to parse a json file and query data from that.
 
 
 ## Architecture:
@@ -47,7 +54,8 @@ Jacson architecture
 
 List of improvements and features to add:
 - [x] Free all memory used by Jacson (without recursion)
-- [x] Interface to interact with AST (Getting/Changing data)
+- [x] Query engine for getting data from AST
+- [ ] Change or add data to AST
 - [ ] Better and more advanced query engine
 - [ ] Handle scape sequences in string data
 - [ ] Handle scape sequences in query strings
