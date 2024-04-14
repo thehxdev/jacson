@@ -34,9 +34,9 @@ extern "C" {
  */
 
 #define JACSON_VERSION_MAJOR 0
-#define JACSON_VERSION_MINOR 0
-#define JACSON_VERSION_PATCH 1
-#define JACSON_VERSION "0.0.1"
+#define JACSON_VERSION_MINOR 1
+#define JACSON_VERSION_PATCH 0
+#define JACSON_VERSION "0.1.0"
 
 
 
