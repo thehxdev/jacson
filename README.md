@@ -1,8 +1,8 @@
 # Jacson
-Jacson is a simple Json parsing library in C that builds an AST from raw json data.
+Jacson is a simple Json parsing library and query engine in C (in ~1100 LoC).
 
 > [!WARNING]
-> This project is under development and everything might change in the future.
+> This project is just a simple json parser with simple query engine. Don't use this library for real programs.
 
 
 ## Build
