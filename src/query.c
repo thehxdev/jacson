@@ -35,6 +35,7 @@ extern "C" {
 // Jacson
 #include "log.h"
 #include "str.h"
+#include "mem.h"
 #include "query.h"
 
 
@@ -162,6 +163,18 @@ static Jcsn_JValue *jcsn_collection_find(Jcsn_JValue *coll, Jcsn_QToken *tk) {
 }
 
 
+static void jcsn_qtlist_free(Jcsn_QTList *qtl) {
+    if (qtl) {
+        for (size_t i = 0; i < qtl->len; i++) {
+            Jcsn_QToken *t = &qtl->tokens[i];
+            if (t->type == Q_NAME)
+                xfree(t->data.str);
+        }
+        xfree(qtl->tokens);
+    }
+}
+
+
 
 /**
  * Module Public API
@@ -182,7 +195,7 @@ Jcsn_JValue *jcsn_query_value(Jcsn_JValue *root, char *query) {
         t = tlist.tokens[i];
         if (scope->type == J_ARRAY && t.type != Q_IDX) {
             JCSN_LOG_ERR("Could not query a json array with a Q_NAME token\n", NULL);
-            // TODO: Free allocated tlist
+            jcsn_qtlist_free(&tlist);
             return NULL;
         }
 
@@ -191,6 +204,7 @@ Jcsn_JValue *jcsn_query_value(Jcsn_JValue *root, char *query) {
             scope = result;
     }
 
+    jcsn_qtlist_free(&tlist);
     return result;
 }
 
