@@ -5,6 +5,22 @@ Jacson is a simple Json parsing library in C that builds an AST from raw json da
 > This project is under development and everything might change in the future.
 
 
+## Build
+To build Jacson, you need a C compiler and `cmake` installed on your system.
+
+```bash
+git clone --depth=1 --branch=main https://github.com/thehxdev/jacson
+
+cd jacson
+
+mkdir -p build && cmake -B build/ -S .
+
+cmake --build build
+```
+
+Then you can use `libjacson.a` file in `build` directory. Or use `test` program in `build` directory to parse a json file and query data from it.
+
+
 ## Architecture:
 Jacson architecture
 
