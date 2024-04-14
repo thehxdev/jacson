@@ -62,6 +62,9 @@ void jcsn_free(Jacson **j);
 // get root of AST
 Jcsn_JValue *jcsn_ast_root(Jacson *j);
 
+// get a json value from AST
+Jcsn_JValue *jcsn_get_value(Jacson *j, char *query);
+
 
 #ifdef __cplusplus
 }

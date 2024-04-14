@@ -31,10 +31,12 @@ Jacson architecture
 
 List of improvements and features to add:
 - [x] Free all memory used by Jacson (without recursion)
+- [ ] Interface to interact with AST (Getting/Changing data)
+- [ ] Better and more advanced query engine
 - [ ] Handle scape sequences in string data
+- [ ] Handle scape sequences in query strings
 - [ ] Documentation for Jacson's public API
 - [ ] Error handling and reporting errors to top-level callers
-- [ ] Interface to interact with AST (Getting/Changing data)
 - [ ] More advanced json syntax validation
 - [ ] Lazy evaluation capabilities
 - [ ] Write tests for each module

@@ -37,6 +37,7 @@ extern "C" {
 #include "types.h"
 #include "jvalue.h"
 #include "parser.h"
+#include "query.h"
 #include <jacson/jacson.h>
 
 
@@ -73,6 +74,10 @@ Jcsn_JValue *jcsn_ast_root(Jacson *j) {
     return (j->ast) ? j->ast->root : NULL;
 }
 
+
+Jcsn_JValue *jcsn_get_value(Jacson *j, char *query) {
+    return jcsn_query_value(j->ast->root, query);
+}
 
 
 #ifdef __cplusplus

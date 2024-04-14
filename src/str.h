@@ -54,6 +54,10 @@ char *jcsn_str_exact_start(const char *source, const char *query);
 char *jcsn_substr_ptr(const char *start, const char *end);
 
 
+// Parse a single integer value from string literal
+long jcsn_parse_long(const char *s);
+
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

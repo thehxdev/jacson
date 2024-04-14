@@ -115,6 +115,31 @@ ret:
 }
 
 
+long jcsn_parse_long(const char *s) {
+    char *tmp = (char*)s;
+    long num = -1;
+    short neg = 0;
+
+    while (*tmp && !(jcsn_is_digit(*tmp))) tmp++;
+    if (*tmp == '\0') {
+        JCSN_LOG_INF("given string does not contain any numbers\n", NULL);
+        goto ret;
+    }
+
+    if (tmp != s && *(tmp-1) == '-')
+        neg = 1;
+
+    num = 0;
+    while (*tmp && jcsn_is_digit(*tmp)) {
+        num *= 10;
+        num += (*tmp - 48);
+        tmp += 1;
+    }
+
+ret:
+    return (neg) ? (num * -1) : num;
+}
+
 
 #ifdef __cplusplus
 }
