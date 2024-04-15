@@ -5,10 +5,12 @@ Jacson is a simple Json parsing library and query engine in C (in ~1100 LoC).
 > This project is just a simple json parser with simple query engine. Don't use this library for real programs.
 
 
+
 ## Features
 
 - By not using recursion Jacson can handle deeply nested structures.
 - Simple Public API
+
 
 
 ## Build
@@ -27,26 +29,62 @@ cmake --build build
 Then you can use `libjacson.a` file for your projects in `build` directory and header files in `include` directory.
 Or use `test` program in `build` directory to parse a json file and query data from that.
 
+Take a look at `test/test.c` file to see how to use Jacson as a library.
+
+
+
+## Query Syntax
+
+Jacson has very simple query syntax to get data from AST (Parsed json data).
+
+- Use `.` to seperate different parts of query.
+- Use `[N]` syntax to show an array's syntax where N is a positive integer or 0.
+
+### Example
+Consider this json data:
+```json
+{
+    "message": "Hello World!",
+    "status": 200,
+    "ok": true,
+    "arr": [
+        true,
+        false,
+        56,
+        12.841,
+        {
+            "name": "thehxdev"
+        },
+        null
+    ]
+}
+```
+To get `thehxdev` string, you can use `arr.[4].name` query string.
+
+> [!NOTE]
+> Use `test` program in `build` directory to parse and query json files. Execute it with no arguments to get a help message.
+
+
 
 ## Architecture:
 Jacson architecture
 
 ```
-    +------------------+
-    |   Raw Json Data  |
-    +---------+--------+
-              |         
-    +---------v--------+
-    |     Tokenizer    |
-    +---------+--------+
-              |         
-    +---------v--------+
-    |     Validator    |
-    +---------+--------+
-              |         
-    +---------v--------+
-    |      Parser      |
-    +------------------+
++------------------+
+|   Raw Json Data  |
++---------+--------+
+          |         
++---------v--------+
+|     Tokenizer    |
++---------+--------+
+          |         
++---------v--------+
+|     Validator    |
++---------+--------+
+          |         
++---------v--------+
+|      Parser      |
++------------------+
 ```
 
 
