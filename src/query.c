@@ -99,6 +99,9 @@ static Jcsn_QTList jcsn_tokenize_query(char *query) {
     };
 
     size_t q_len = strlen(query);
+    if (q_len == 0)
+        goto ret;
+
     jcsn_qtlist_init(&tlist, query, q_len);
     if (!tlist.tokens)
         goto ret;
@@ -200,6 +203,9 @@ Jcsn_JValue *jcsn_query_value(Jcsn_JValue *root, char *query) {
         }
 
         result = jcsn_collection_find(scope, &t);
+        if (!result)
+            break;
+
         if (result->type == J_ARRAY || result->type == J_OBJECT)
             scope = result;
     }
