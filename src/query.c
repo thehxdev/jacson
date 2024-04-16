@@ -138,18 +138,17 @@ ret:
 
 static Jcsn_JValue *jcsn_collection_find(Jcsn_JValue *coll, Jcsn_QToken *tk) {
     size_t i = 0;
-    Jcsn_JValue *res = NULL;
     switch (coll->type) {
         case J_ARRAY: {
             if (tk->type != Q_IDX)
-                return NULL;
+                goto ret;
             return coll->data.array->vals[tk->data.idx];
         }
         break;
 
         case J_OBJECT: {
             if (tk->type != Q_NAME)
-                return NULL;
+                goto ret;
             Jcsn_JObject *obj = coll->data.object;
             for (i = 0; i < obj->len; i++) {
                 if (strcmp(tk->data.str, obj->names[i]) == 0)
@@ -159,10 +158,11 @@ static Jcsn_JValue *jcsn_collection_find(Jcsn_JValue *coll, Jcsn_QToken *tk) {
         break;
 
         default:
-            return NULL;
+            goto ret;
     }
 
-    return res;
+ret:
+    return NULL;
 }
 
 
@@ -198,6 +198,7 @@ Jcsn_JValue *jcsn_query_value(Jcsn_JValue *root, char *query) {
         t = tlist.tokens[i];
         if (scope->type == J_ARRAY && t.type != Q_IDX) {
             JCSN_LOG_ERR("Could not query a json array with a Q_NAME token\n", NULL);
+            JCSN_LOG_ERR("Use \'[N]\' syntax to get an index from json array\n", NULL);
             jcsn_qtlist_free(&tlist);
             return NULL;
         }
