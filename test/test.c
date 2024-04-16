@@ -16,10 +16,14 @@ int main(int argc, char **argv) {
     Jcsn_JValue *root = jcsn_ast_root(j);
     if (!root) {
         fprintf(stderr, "AST root is NULL\n");
-        return 1;
+        goto ret;
     }
 
     Jcsn_JValue *result = jcsn_get_value(j, argv[2]);
+    if (!result) {
+        fprintf(stderr, "Query result is NULL\n");
+        goto ret;
+    }
 
     printf("%s -> ", argv[2]);
     switch (result->type) {
@@ -53,6 +57,7 @@ int main(int argc, char **argv) {
 
     }
 
+ret:
     jcsn_free(&j);
     free(jdata);
     return 0;
