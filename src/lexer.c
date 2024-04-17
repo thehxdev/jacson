@@ -104,32 +104,26 @@ static Jcsn_TList *jcsn_tlist_new(size_t cap) {
 
 
 // Construct a new raw token
-static Jcsn_Token *jcsn_token_new(enum Jcsn_Token_T type) {
-    Jcsn_Token *token = malloc(sizeof(*token));
-    if (token == NULL) {
-        JCSN_LOG_ERR("Failed to allocate memory for new token\n", NULL);
-        return NULL;
-    }
-
-    token->type = type;
-    return token;
+static inline Jcsn_Token jcsn_token_new(enum Jcsn_Token_T type) {
+    return (Jcsn_Token) {
+        .type = type,
+    };
 }
 
 
 // Free a token from memory
-static void jcsn_token_free(Jcsn_Token **token, byte free_strings) {
-    Jcsn_Token *t = *token;
+static void jcsn_token_free(Jcsn_Token *t, byte free_strings) {
     if (t) {
         if (t->type == TK_STRING && free_strings)
             xfree(t->value.string);
-        xfree(t);
+        // xfree(t);
     }
 }
 
 
 static byte jcsn_tlist_append(Jcsn_TList *tlist, Jcsn_Token *token) {
     if ((tlist->len % tlist->cap) == 0) {
-        size_t new_size = (tlist->len + tlist->cap) * sizeof(*token);
+        size_t new_size = (tlist->len + tlist->cap) * sizeof(*tlist->tokens);
         tlist->tokens = realloc(tlist->tokens, new_size);
         if (tlist->tokens == NULL) {
             JCSN_LOG_ERR("Failed to reallocate memory for token list\n", NULL);
@@ -137,8 +131,7 @@ static byte jcsn_tlist_append(Jcsn_TList *tlist, Jcsn_Token *token) {
         }
     }
 
-    Jcsn_Token **t = &tlist->tokens[tlist->len];
-    *t = token;
+    tlist->tokens[tlist->len] = *token;
     tlist->len += 1;
     return 0;
 }
@@ -255,7 +248,7 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
 
     char ch, *tmp;
     Jcsn_JNumber num = { {0}, TK_NULL };
-    Jcsn_Token *tk = NULL;
+    Jcsn_Token tk = { 0 };
     enum Jcsn_Token_T tk_type;
 
     jcsn_skip_whitespaces(&tokenizer.base);
@@ -294,8 +287,8 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
         else if (ch == '\"') {
             tk_type = TK_STRING;
             tk = jcsn_token_new(tk_type);
-            tk->value.string = jcsn_parse_jstr(&tokenizer.base, &tokenizer.curr);
-            if (tk->value.string == NULL) {
+            tk.value.string = jcsn_parse_jstr(&tokenizer.base, &tokenizer.curr);
+            if (tk.value.string == NULL) {
                 JCSN_LOG_ERR("Failed to parse json string\n", NULL);
                 JCSN_LOG_ERR("Check json data syntax for errors\n", NULL);
                 jcsn_token_free(&tk, true);
@@ -323,11 +316,11 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
             tk_type = TK_BOOL;
             tk = jcsn_token_new(tk_type);
             if ((tmp = jcsn_str_exact_start(tokenizer.base, "true"))) {
-                tk->value.boolean = true;
+                tk.value.boolean = true;
                 tokenizer.base = tmp;
             }
             else if ((tmp = jcsn_str_exact_start(tokenizer.base, "false"))) {
-                tk->value.boolean = false;
+                tk.value.boolean = false;
                 tokenizer.base = tmp;
             }
             else {
@@ -346,12 +339,12 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
             switch (num.type) {
                 case TK_INTEGER:
                     tk = jcsn_token_new(tk_type);
-                    tk->value.integer = num.value.integer;
+                    tk.value.integer = num.value.integer;
                     break;
 
                 case TK_DOUBLE:
                     tk = jcsn_token_new(tk_type);
-                    tk->value.real = num.value.real;
+                    tk.value.real = num.value.real;
                     break;
 
                 default: {
@@ -372,7 +365,7 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
 
         tk = jcsn_token_new(tk_type);
 append:
-        jcsn_tlist_append(tlist, tk);
+        jcsn_tlist_append(tlist, &tk);
         jcsn_skip_whitespaces(&tokenizer.base);
     } // end while loop
 
@@ -380,8 +373,8 @@ append:
 }
 
 
-Jcsn_Token *jcsn_tlist_get(Jcsn_Token **tks, size_t len, long idx) {
-    return ((idx >= 0) && (idx < (long)len)) ? tks[idx] : NULL;
+Jcsn_Token *jcsn_tlist_get(Jcsn_Token *tks, size_t len, long idx) {
+    return ((idx >= 0) && (idx < (long)len)) ? &tks[idx] : NULL;
 }
 
 #ifdef __cplusplus

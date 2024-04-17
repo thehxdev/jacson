@@ -77,7 +77,7 @@ byte jcsn_validate_tokens(Jcsn_TList *tlist) {
     byte stat = 1;
     size_t len = tlist->len, i;
     long brace_nest = 0, bracket_nest = 0;
-    register Jcsn_Token **tks = tlist->tokens, *curr = tks[0], *prev, *next;
+    register Jcsn_Token *tks = tlist->tokens, *curr = &tks[0], *prev, *next;
 
     // Check first token
     // It must be one of '[' or '{' characters.

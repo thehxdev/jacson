@@ -61,7 +61,7 @@ typedef struct Jcsn_Token {
 
 // a dynamic array to store tokens
 typedef struct Jcsn_TList {
-    Jcsn_Token **tokens;
+    Jcsn_Token *tokens;
     unsigned long len;
     unsigned long cap;
 } __attribute__((packed)) Jcsn_TList;
@@ -72,7 +72,7 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata);
 void jcsn_tlist_free(Jcsn_TList **tlist, byte free_strings);
 
 // get a token from token list
-Jcsn_Token *jcsn_tlist_get(Jcsn_Token **tks, unsigned long len, long idx);
+Jcsn_Token *jcsn_tlist_get(Jcsn_Token *tks, unsigned long len, long idx);
 
 
 #ifdef __cplusplus

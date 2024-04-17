@@ -122,7 +122,7 @@ Jcsn_AST *jcsn_parser_parse_raw(char *jdata) {
 
     long len = (long)tlist->len, i;
     Jcsn_JValue *val = NULL;
-    register Jcsn_Token **tks = tlist->tokens;
+    register Jcsn_Token *tks = tlist->tokens;
 
     Jcsn_Parser parser = { 0 };
     Jcsn_AST *ast = malloc(sizeof(*ast));
