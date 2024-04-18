@@ -104,7 +104,8 @@ static Jcsn_TList *jcsn_tlist_new(size_t cap) {
 
 
 // Construct a new raw token
-static inline Jcsn_Token jcsn_token_new(enum Jcsn_Token_T type) {
+static inline __attribute__((always_inline)) Jcsn_Token
+jcsn_token_new(enum Jcsn_Token_T type) {
     return (Jcsn_Token) {
         .type = type,
     };
