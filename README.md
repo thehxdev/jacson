@@ -38,7 +38,7 @@ Take a look at `test/test.c` file to see how to use Jacson as a library.
 Jacson has very simple query syntax to get data from AST (Parsed json data).
 
 - Use `.` to seperate different parts of query.
-- Use `[N]` syntax to show an array's syntax where N is a positive integer or 0.
+- Use `[N]` syntax to show an array's index where N is a positive integer or 0.
 
 ### Example
 Consider this json data:
