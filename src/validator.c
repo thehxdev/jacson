@@ -137,6 +137,11 @@ byte jcsn_validate_tokens(Jcsn_TList *tlist) {
                     stat = 0;
                     goto ret;
                 }
+                if (next->type == ',') {
+                    JCSN_LOG_ERR("Expected json value after \':\' character but \',\' found\n", NULL);
+                    stat = 0;
+                    goto ret;
+                }
             } break;
 
             default: break;
