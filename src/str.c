@@ -33,14 +33,41 @@ extern "C" {
 #endif // __JCSN_TRACE__
 
 // Jacson
-#include "types.h"
 #include "log.h"
 #include "str.h"
+
 
 
 /**
  * Module Public API
  */
+
+int jcsn_string_append(Jcsn_String *jstr, const char *s, size_t slen) {
+    // include null terminator while allocating more memory
+    slen += 1;
+    if ((jstr->len % jstr->cap) <= slen) {
+        size_t blocks = ((int)((jstr->len + slen) / jstr->cap)) + 1;
+        jstr->data = realloc(jstr->data, (sizeof(char) * blocks * jstr->cap));
+        if (jstr->data == NULL)
+            return 1;
+    }
+
+    slen -= 1;
+    char *last_ptr = &((jstr->data)[jstr->len]);
+    memmove(last_ptr, s, slen * sizeof(char));
+
+    jstr->len += slen;
+    jstr->data[jstr->len] = '\0';
+
+    return 0;
+}
+
+
+void jcsn_string_clear(Jcsn_String *jstr) {
+    jstr->len = 0;
+    free(jstr->data);
+    jstr->data = NULL;
+}
 
 
 // `source` string exactly starts with `query`

@@ -28,6 +28,7 @@ extern "C" {
 
 // Standard library
 #include <stdlib.h>
+#include <string.h>
 #ifdef __JCSN_TRACE__
     #include <stdio.h>
 #endif // __JCSN_TRACE__
@@ -140,24 +141,62 @@ static byte jcsn_tlist_append(Jcsn_TList *tlist, Jcsn_Token *token) {
 
 // extract a string in between two quotes
 static char *jcsn_parse_jstr(char **base, char **curr) {
-    char *str = NULL;
+    char ch, *sub;
+    Jcsn_String str = jcsn_string_new(15);
 
-    // skip the `"` character
+    // skip first `"` character
     *curr = (*base += 1);
 
     while (**curr && **curr != '\"') {
+        if (**curr == '\\') {
+            sub = jcsn_substr_ptr(*base, *curr);
+            jcsn_string_append(&str, sub, strlen(sub));
+            xfree(sub);
+
+            *curr += 1;
+            switch (**curr) {
+                case '\"':
+                    ch = '\"';
+                    break;
+                case '\\':
+                    ch = '\\';
+                    break;
+                case '/':
+                    ch = '/';
+                    break;
+                case 'b':
+                    ch = '\b';
+                    break;
+                case 'n':
+                    ch = '\n';
+                    break;
+                case 'r':
+                    ch = '\r';
+                    break;
+                case 't':
+                    ch = '\t';
+                    break;
+                case 'f':
+                    ch = '\f';
+                    break;
+            }
+            jcsn_string_append(&str, &ch, 1);
+            *base = *curr + 1;
+        }
         *curr += 1;
-        // skip `"` scape sequance
-        if (**curr == '\\' && *(*curr+1) == '\"')
-            *curr += 2;
     }
 
-    if (**curr == '\0')
+    if (**curr == '\0') {
+        xfree(sub);
+        xfree(str.data);
         return NULL;
+    }
 
-    str = jcsn_substr_ptr(*base, *curr);
+    sub = jcsn_substr_ptr(*base, *curr);
+    jcsn_string_append(&str, sub, strlen(sub));
+
 #ifdef __JCSN_TRACE__
-    if (str == NULL) {
+    if (str.data == NULL) {
         JCSN_LOG_ERR("jcsn_substr_ptr returned NULL\n", NULL);
         JCSN_LOG_ERR("Failed to parse a json string\n", NULL);
         JCSN_LOG_INF("Returning NULL\n", NULL);
@@ -166,7 +205,8 @@ static char *jcsn_parse_jstr(char **base, char **curr) {
 
     // put *base after last `"` character
     *base = (*curr += 1);
-    return str;
+    xfree(sub);
+    return str.data;
 }
 
 

@@ -41,10 +41,35 @@ extern "C" {
     (((ch) >= '0') && ((ch) <= '9'))
 
 
+#define JCSN_STRING_DEF_CAP (25)
+
+
+#define jcsn_string_new(cap)    \
+    (Jcsn_String){ NULL, 0, (((cap) > 0) ? ((cap)) : (JCSN_STRING_DEF_CAP)) }
+
+
+
+/**
+ * Types
+ */
+
+typedef struct Jcsn_String {
+    char *data;
+    size_t len;
+    size_t cap;
+} Jcsn_String;
+
+
 
 /**
  * Module Public API
  */
+
+// append to a dynamic string
+int jcsn_string_append(Jcsn_String *jstr, const char *s, size_t slen);
+
+// clear string buffer
+void jcsn_string_clear(Jcsn_String *jstr);
 
 // `source` string exactly starts with `query`.
 char *jcsn_str_exact_start(const char *source, const char *query);
