@@ -94,6 +94,7 @@ List of improvements and features to add:
 - [x] Free all memory used by Jacson (without recursion)
 - [x] Query engine for getting data from AST
 - [x] Handle control characters in json strings
+- [ ] Unicode (utf-8) support
 - [ ] Handle control characters in query strings
 - [ ] Change or add data to AST
 - [ ] Better and more advanced query engine
