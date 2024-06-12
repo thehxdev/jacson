@@ -32,9 +32,7 @@ extern "C" {
 #include <stdlib.h>
 
 // Jacson
-#include "log.h"
 #include "mem.h"
-#include "types.h"
 #include "jvalue.h"
 #include "parser.h"
 #include "query.h"
