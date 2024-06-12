@@ -34,7 +34,7 @@ extern "C" {
 
 
 // json value type
-enum Jcsn_JVal_T {
+enum Jcsn_JVal_T : byte {
     J_OBJECT,
     J_ARRAY,
     J_STRING,
@@ -45,6 +45,15 @@ enum Jcsn_JVal_T {
 };
 
 typedef struct Jcsn_JValue {
+    unsigned byte parsed: 1;
+
+    enum Jcsn_JVal_T type: 4;
+
+    // Any json value is part of a json object or a json array.
+    // `parent` is a pointer to the json object or json array
+    // that this value belongs to.
+    struct Jcsn_JValue *parent;
+
     union {
         struct Jcsn_JArray *array;
         struct Jcsn_JObject *object;
@@ -53,14 +62,6 @@ typedef struct Jcsn_JValue {
         long integer;
         double real; // Fortran programmer, huh? :)
     } data;
-
-    enum Jcsn_JVal_T type;
-
-    // Any json value is part of a json object or a json array.
-    // `parent` is a pointer to the json object or json array
-    // that this value belongs to.
-    struct Jcsn_JValue *parent;
-    byte parsed;
 } Jcsn_JValue;
 
 
