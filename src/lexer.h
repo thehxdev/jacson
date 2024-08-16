@@ -22,6 +22,7 @@
 extern "C" {
 #endif // __cplusplus
 
+#include <stddef.h>
 
 
 /**
@@ -72,7 +73,7 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata);
 void jcsn_tlist_free(Jcsn_TList **tlist, byte free_strings);
 
 // get a token from token list
-Jcsn_Token *jcsn_tlist_get(Jcsn_Token *tks, unsigned long len, long idx);
+Jcsn_Token *jcsn_tlist_get(Jcsn_Token *tks, size_t len, long idx);
 
 
 #ifdef __cplusplus

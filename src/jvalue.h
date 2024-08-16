@@ -22,6 +22,7 @@
 extern "C" {
 #endif // __cplusplus
 
+#include <stddef.h>
 #include <jacson/jtypes.h>
 
 
@@ -42,7 +43,7 @@ byte jcsn_jobj_add_name(Jcsn_JObject *jobj, const char *name);
 byte jcsn_jobj_set_value(Jcsn_JObject *jobj, Jcsn_JValue *value);
 
 // Construct a new json array
-Jcsn_JValue *jcsn_jarr_new(unsigned long cap);
+Jcsn_JValue *jcsn_jarr_new(size_t cap);
 
 // Append a json value to json array
 byte jcsn_jarr_append(Jcsn_JArray *jarr, Jcsn_JValue *value);
