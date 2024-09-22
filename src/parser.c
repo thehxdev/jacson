@@ -219,14 +219,14 @@ ret:
 }
 
 
-void jcsn_ast_free(Jcsn_AST **ast) {
-    if (*ast == NULL)
+void jcsn_ast_free(Jcsn_AST *ast) {
+    if (ast == NULL)
         return;
 
     long i;
     Jcsn_JObject *obj;
     Jcsn_JArray *arr;
-    Jcsn_JValue *scope = (*ast)->root, *curr = NULL, *parent;
+    Jcsn_JValue *scope = ast->root, *curr = NULL, *parent;
 
     // Free the AST without recursion
 again:
@@ -293,7 +293,7 @@ again:
         if (scope == NULL)
             break;
     } // end while (scope) 
-    xfree(*ast);
+    xfree(ast);
 }
 
 

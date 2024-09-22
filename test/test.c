@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
     }
 
 ret:
-    jcsn_free(&j);
+    jcsn_free(j);
     free(jdata);
     return 0;
 }

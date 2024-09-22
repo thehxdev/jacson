@@ -45,7 +45,7 @@ typedef struct Jcsn_AST {
 Jcsn_AST *jcsn_parser_parse_raw(char *jdata);
 
 // Free all memory used by ast
-void jcsn_ast_free(Jcsn_AST **ast);
+void jcsn_ast_free(Jcsn_AST *ast);
 
 
 

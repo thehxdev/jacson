@@ -30,7 +30,11 @@ extern "C" {
 
 // Since `free` ignores NULL pointers, set pointers to `NULL` after
 // calling `free` on them to prevent double free error.
-#define xfree(ptr) do { free((ptr)); (ptr) = NULL; } while (0)
+#define xfree(ptr)		\
+	do {				\
+		free((ptr));	\
+		(ptr) = NULL;	\
+	} while (0)
 
 
 

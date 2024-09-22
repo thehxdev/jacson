@@ -62,9 +62,9 @@ Jacson *jcsn_parse_json(char *jdata) {
 }
 
 
-void jcsn_free(Jacson **j) {
-    jcsn_ast_free(&(*j)->ast);
-    xfree(*j);
+void jcsn_free(Jacson *j) {
+    jcsn_ast_free(j->ast);
+    xfree(j);
 }
 
 

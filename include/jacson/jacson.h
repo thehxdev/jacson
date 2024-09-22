@@ -57,7 +57,7 @@ typedef struct Jacson Jacson;
 Jacson *jcsn_parse_json(char *jdata);
 
 // Free all memory used by Jacson
-void jcsn_free(Jacson **j);
+void jcsn_free(Jacson *j);
 
 // get root of AST
 Jcsn_JValue *jcsn_ast_root(Jacson *j);
