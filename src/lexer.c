@@ -292,8 +292,12 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
     Jcsn_Token tk = { 0 };
     enum Jcsn_Token_T tk_type;
 
-    jcsn_skip_whitespaces(&tokenizer.base);
-    while ((ch = *tokenizer.base)) {
+    // jcsn_skip_whitespaces(&tokenizer.base);
+    while (1) {
+        jcsn_skip_whitespaces(&tokenizer.base);
+        ch = *tokenizer.base;
+        if (!ch)
+            break;
 
         if (ch == '{') {
             tk_type = TK_OBJ_BEG;
@@ -407,7 +411,6 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
         tk = jcsn_token_new(tk_type);
 append:
         jcsn_tlist_append(tlist, &tk);
-        jcsn_skip_whitespaces(&tokenizer.base);
     } // end while loop
 
     return tlist;
