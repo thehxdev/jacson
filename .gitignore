@@ -5,3 +5,4 @@ vgcore*
 .cache/
 a.out
 compile_flags.txt
+tags
