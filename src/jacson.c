@@ -58,6 +58,9 @@ Jacson *jcsn_parse_json(char *jdata) {
         .ast = jcsn_parser_parse_raw(jdata),
     };
 
+    if (!j->ast)
+        xfree(j);
+
     return j;
 }
 
@@ -81,4 +84,3 @@ Jcsn_JValue *jcsn_get_value(Jacson *j, char *query) {
 #ifdef __cplusplus
 }
 #endif // __cplusplus
-

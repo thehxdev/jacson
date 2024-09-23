@@ -36,8 +36,8 @@ enum Jcsn_Token_T {
     TK_OBJ_END = '}',
     TK_ARR_BEG = '[',
     TK_ARR_END = ']',
-    TK_SET      = ':',
-    TK_COMMA    = ',',
+    TK_SET     = ':',
+    TK_COMMA   = ',',
 
     // Json values
     TK_STRING,
@@ -45,7 +45,7 @@ enum Jcsn_Token_T {
     TK_DOUBLE,
     TK_BOOL,
     TK_NULL,
-} __attribute__((packed));
+};
 
 
 // a Json Token
@@ -57,7 +57,7 @@ typedef struct Jcsn_Token {
         double real;
     } value;
     enum Jcsn_Token_T type;
-} __attribute__((packed)) Jcsn_Token;
+} Jcsn_Token;
 
 
 // a dynamic array to store tokens
@@ -65,12 +65,12 @@ typedef struct Jcsn_TList {
     Jcsn_Token *tokens;
     unsigned long len;
     unsigned long cap;
-} __attribute__((packed)) Jcsn_TList;
+} Jcsn_TList;
 
 
-Jcsn_TList *jcsn_tokenize_json(char *jdata);
+Jcsn_TList jcsn_tokenize_json(char *jdata);
 
-void jcsn_tlist_free(Jcsn_TList **tlist, byte free_strings);
+void jcsn_tlist_free(Jcsn_TList *tlist, byte free_strings);
 
 // get a token from token list
 Jcsn_Token *jcsn_tlist_get(Jcsn_Token *tks, size_t len, long idx);

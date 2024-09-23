@@ -113,17 +113,21 @@ ret:
 
 // Parse json data from bytes into an AST
 Jcsn_AST *jcsn_parser_parse_raw(char *jdata) {
-    Jcsn_TList *tlist = jcsn_tokenize_json(jdata);
-    if (!jcsn_validate_tokens(tlist)) {
+    Jcsn_TList tlist = jcsn_tokenize_json(jdata);
+    if (!tlist.tokens) {
+        JCSN_LOG_ERR("Failed to tokenize json data\n", NULL);
+        return NULL;
+    }
+
+    if (!jcsn_validate_tokens(&tlist)) {
         JCSN_LOG_ERR("Provided json data is not valid\n", NULL);
         JCSN_LOG_INF("Returning NULL\n", NULL);
         return NULL;
     }
 
-    long len = (long)tlist->len, i;
+    long len = (long)tlist.len, i;
     Jcsn_JValue *val = NULL;
-    register Jcsn_Token *tks = tlist->tokens;
-
+    register Jcsn_Token *tks = tlist.tokens;
     Jcsn_Parser parser = { 0 };
     Jcsn_AST *ast = malloc(sizeof(*ast));
     *ast = (Jcsn_AST) {

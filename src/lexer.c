@@ -46,8 +46,7 @@ extern "C" {
  * Macros and Constants
  */
 
-// Token list default capacity
-#define TLIST_DEF_CAP 30
+#define TLIST_CAP_GROW_UNIT 30
 
 
 
@@ -78,7 +77,7 @@ typedef struct Jcsn_JNumber {
     } value;
 
     enum Jcsn_Token_T type;
-} __attribute__((packed)) Jcsn_JNumber;
+} Jcsn_JNumber;
 
 
 
@@ -86,53 +85,16 @@ typedef struct Jcsn_JNumber {
  * Module Private API
  */
 
-// Construct a new token list
-static Jcsn_TList *jcsn_tlist_new(size_t cap) {
-    Jcsn_TList *tlist = malloc(sizeof(*tlist));
-    if (tlist == NULL) {
-        JCSN_LOG_ERR("Failed to allocate memory for new token list\n", NULL);
-        return NULL;
-    }
-
-    *tlist = (Jcsn_TList) {
-        .tokens = NULL,
-        .cap = cap,
-        .len = 0,
-    };
-
-    return tlist;
-};
-
-
-// Construct a new raw token
-static inline __attribute__((always_inline)) Jcsn_Token
-jcsn_token_new(enum Jcsn_Token_T type) {
-    return (Jcsn_Token) {
-        .type = type,
-    };
-}
-
-
-// Free a token from memory
-static void jcsn_token_free(Jcsn_Token *t, byte free_strings) {
-    if (t) {
-        if (t->type == TK_STRING && free_strings)
-            xfree(t->value.string);
-        // xfree(t);
-    }
-}
-
-
 static byte jcsn_tlist_append(Jcsn_TList *tlist, Jcsn_Token *token) {
-    if ((tlist->len % tlist->cap) == 0) {
-        size_t new_size = (tlist->len + tlist->cap) * sizeof(*tlist->tokens);
+    if (tlist->len == tlist->cap) {
+        tlist->cap += TLIST_CAP_GROW_UNIT;
+        size_t new_size = tlist->cap * sizeof(*tlist->tokens);
         tlist->tokens = realloc(tlist->tokens, new_size);
-        if (tlist->tokens == NULL) {
+        if (!tlist->tokens) {
             JCSN_LOG_ERR("Failed to reallocate memory for token list\n", NULL);
             return 1;
         }
     }
-
     tlist->tokens[tlist->len] = *token;
     tlist->len += 1;
     return 0;
@@ -262,37 +224,34 @@ static Jcsn_JNumber jcsn_parse_jnum(char **base, char **curr) {
  */
 
 // Free all memory allocated by a token list
-void jcsn_tlist_free(Jcsn_TList **tlist, byte free_strings) {
-    Jcsn_TList *tl = *tlist;
+void jcsn_tlist_free(Jcsn_TList *tl, byte free_strings) {
+    Jcsn_Token t;
     if (tl) {
-        for (size_t i = 0; i < tl->len; i++)
-            jcsn_token_free(&tl->tokens[i], free_strings);
+        for (size_t i = 0; i < tl->len; i++) {
+            t = tl->tokens[i];
+            if (t.type == TK_STRING && free_strings)
+                xfree(t.value.string);
+        }
         xfree(tl->tokens);
-        xfree(tl);
+        tl->len = 0;
+        tl->cap = 0;
     }
 }
 
 
-Jcsn_TList *jcsn_tokenize_json(char *jdata) {
+Jcsn_TList jcsn_tokenize_json(char *jdata) {
     Jcsn_Tokenizer tokenizer = {
         .first = jdata,
         .base  = jdata,
         .curr  = jdata,
     };
 
-    Jcsn_TList *tlist = jcsn_tlist_new(TLIST_DEF_CAP);
-    if (tlist == NULL) {
-        JCSN_LOG_ERR("Failed to construct a new token list\n", NULL);
-        JCSN_LOG_ERR("Failed to parse json data\n", NULL);
-        return NULL;
-    }
-
-    char ch, *tmp;
+    char ch, *tmp, err = 0;
+    Jcsn_TList tlist = { NULL, 0, 0 };
     Jcsn_JNumber num = { {0}, TK_NULL };
-    Jcsn_Token tk = { 0 };
+    Jcsn_Token tk = {0};
     enum Jcsn_Token_T tk_type;
 
-    // jcsn_skip_whitespaces(&tokenizer.base);
     while (1) {
         jcsn_skip_whitespaces(&tokenizer.base);
         ch = *tokenizer.base;
@@ -331,14 +290,14 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
 
         else if (ch == '\"') {
             tk_type = TK_STRING;
-            tk = jcsn_token_new(tk_type);
+            tk = (Jcsn_Token) { .type = tk_type };
             tk.value.string = jcsn_parse_jstr(&tokenizer.base, &tokenizer.curr);
             if (tk.value.string == NULL) {
                 JCSN_LOG_ERR("Failed to parse json string\n", NULL);
                 JCSN_LOG_ERR("Check json data syntax for errors\n", NULL);
-                jcsn_token_free(&tk, true);
-                jcsn_tlist_free(&tlist, true);
-                return NULL;
+                xfree(tk.value.string);
+                err = 1;
+                goto ret;
             }
             goto append;
         } // end tokenize json string
@@ -346,20 +305,20 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
         else if (ch == 'n') {
             tk_type = TK_NULL;
             if ((tmp = jcsn_str_exact_start(tokenizer.base, "null"))) {
-                tk = jcsn_token_new(tk_type);
+                tk = (Jcsn_Token) { .type = tk_type };
                 tokenizer.base = tmp;
                 goto append;
             } else {
                 JCSN_LOG_ERR("Invalid token while parsing json null\n", NULL);
                 JCSN_LOG_ERR("Token does not match with \'null\'\n", NULL);
-                jcsn_tlist_free(&tlist, true);
-                return NULL;
+                err = 1;
+                goto ret;
             }
         } // end tokenize json null
 
         else if (ch == 't' || ch == 'f') {
             tk_type = TK_BOOL;
-            tk = jcsn_token_new(tk_type);
+            tk = (Jcsn_Token) { .type = tk_type };
             if ((tmp = jcsn_str_exact_start(tokenizer.base, "true"))) {
                 tk.value.boolean = true;
                 tokenizer.base = tmp;
@@ -371,9 +330,8 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
             else {
                 JCSN_LOG_ERR("Invalid token while parsing json boolean value\n", NULL);
                 JCSN_LOG_ERR("Token does not match with \'true\' or \'false\'\n", NULL);
-                jcsn_token_free(&tk, true);
-                jcsn_tlist_free(&tlist, true);
-                return NULL;
+                err = 1;
+                goto ret;
             }
             goto append;
         } // end tokenize json boolean
@@ -383,20 +341,20 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
             tk_type = num.type;
             switch (num.type) {
                 case TK_INTEGER:
-                    tk = jcsn_token_new(tk_type);
+                    tk = (Jcsn_Token) { .type = tk_type };
                     tk.value.integer = num.value.integer;
                     break;
 
                 case TK_DOUBLE:
-                    tk = jcsn_token_new(tk_type);
+                    tk = (Jcsn_Token) { .type = tk_type };
                     tk.value.real = num.value.real;
                     break;
 
                 default: {
                     JCSN_LOG_ERR("Invalid token while parsing json number value\n", NULL);
                     JCSN_LOG_ERR("Token does not match with a valid number\n", NULL);
-                    jcsn_tlist_free(&tlist, true);
-                    return NULL;
+                    err = 1;
+                    goto ret;
                 }
             } // end switch(num.type)
             goto append;
@@ -404,15 +362,18 @@ Jcsn_TList *jcsn_tokenize_json(char *jdata) {
 
         else {
             JCSN_LOG_ERR("Invalid character while parsing json data: %c (ascii: %d)\n", ch, ch);
-            jcsn_tlist_free(&tlist, true);
-            return NULL;
+            err = 1;
+            goto ret;
         }
 
-        tk = jcsn_token_new(tk_type);
+        tk = (Jcsn_Token) { .type = tk_type };
 append:
-        jcsn_tlist_append(tlist, &tk);
+        jcsn_tlist_append(&tlist, &tk);
     } // end while loop
 
+ret:
+    if (err)
+        jcsn_tlist_free(&tlist, true);
     return tlist;
 }
 
