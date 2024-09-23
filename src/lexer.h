@@ -70,7 +70,7 @@ typedef struct Jcsn_TList {
 
 Jcsn_TList jcsn_tokenize_json(char *jdata);
 
-void jcsn_tlist_free(Jcsn_TList *tlist, byte free_strings);
+void jcsn_tlist_free(Jcsn_TList *tlist);
 
 // get a token from token list
 Jcsn_Token *jcsn_tlist_get(Jcsn_Token *tks, size_t len, long idx);

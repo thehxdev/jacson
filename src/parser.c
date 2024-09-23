@@ -218,7 +218,7 @@ Jcsn_AST *jcsn_parser_parse_raw(char *jdata) {
     } // end for loop
 
 ret:
-    jcsn_tlist_free(&tlist, false);
+    xfree(tlist.tokens);
     return ast;
 }
 

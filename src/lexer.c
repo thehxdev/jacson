@@ -224,14 +224,12 @@ static Jcsn_JNumber jcsn_parse_jnum(char **base, char **curr) {
  */
 
 // Free all memory allocated by a token list
-// Since parser keeps a refrence to string values and not deep copy them,
-// there is an option to free_strings or not.
-void jcsn_tlist_free(Jcsn_TList *tl, byte free_strings) {
+void jcsn_tlist_free(Jcsn_TList *tl) {
     Jcsn_Token t;
     if (tl) {
         for (size_t i = 0; i < tl->len; i++) {
             t = tl->tokens[i];
-            if (t.type == TK_STRING && free_strings)
+            if (t.type == TK_STRING)
                 xfree(t.value.string);
         }
         xfree(tl->tokens);
@@ -375,7 +373,7 @@ append:
 
 ret:
     if (err)
-        jcsn_tlist_free(&tlist, true);
+        jcsn_tlist_free(&tlist);
     return tlist;
 }
 
