@@ -224,6 +224,8 @@ static Jcsn_JNumber jcsn_parse_jnum(char **base, char **curr) {
  */
 
 // Free all memory allocated by a token list
+// Since parser keeps a refrence to string values and not deep copy them,
+// there is an option to free_strings or not.
 void jcsn_tlist_free(Jcsn_TList *tl, byte free_strings) {
     Jcsn_Token t;
     if (tl) {
