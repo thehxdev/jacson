@@ -48,7 +48,7 @@ enum Jcsn_QType {
     // Q_ROOT, // root of AST
     Q_NAME, // a name in json object
     Q_IDX,  // an index in json array
-} __attribute__((packed));
+};
 
 
 // a query token
@@ -58,14 +58,14 @@ typedef struct jcsn_qtoken {
         long idx;
     } data;
     enum Jcsn_QType type;
-} __attribute__((packed)) Jcsn_QToken;
+} Jcsn_QToken;
 
 
 // an array of tokens
 typedef struct jcsn_qtlist {
     Jcsn_QToken *tokens;
     size_t len;
-} __attribute__((packed)) Jcsn_QTList;
+} Jcsn_QTList;
 
 
 /**
