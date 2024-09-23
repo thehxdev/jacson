@@ -11,6 +11,7 @@ add_compile_options(
     -Wall
     -Wextra
     -Wno-unused-result
+    -Wno-implicit-fallthrough
 )
 
 if (OPTIMIZE)
