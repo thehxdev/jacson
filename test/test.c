@@ -1,5 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include <jacson/jacson.h>
 
 char *read_file(const char *path);
@@ -10,8 +14,15 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    struct timespec start, end;
+
     char *jdata = read_file(argv[1]);
+
+    clock_gettime(CLOCK_REALTIME, &start);
     Jacson *j = jcsn_parse_json(jdata);
+    clock_gettime(CLOCK_REALTIME, &end);
+
+    printf("parsing took %lu nano secs\n", end.tv_nsec - start.tv_nsec);
 
     Jcsn_JValue *root = jcsn_ast_root(j);
     if (!root) {
@@ -19,7 +30,11 @@ int main(int argc, char **argv) {
         goto ret;
     }
 
+    clock_gettime(CLOCK_REALTIME, &start);
     Jcsn_JValue *result = jcsn_get_value(j, argv[2]);
+    clock_gettime(CLOCK_REALTIME, &end);
+    printf("getting value took %lu nano secs\n\n", end.tv_nsec - start.tv_nsec);
+
     if (!result) {
         fprintf(stderr, "Query result is NULL\n");
         goto ret;
@@ -59,26 +74,24 @@ int main(int argc, char **argv) {
 
 ret:
     jcsn_free(j);
-    free(jdata);
     return 0;
 }
 
 
 char *read_file(const char *path) {
-    char *content = NULL;
+    struct stat sb;
+    char *content;
+
     FILE *fp = fopen(path, "r");
     if (!fp) {
         perror("Filed to open file");
         exit(1);
     }
 
-    fseek(fp, SEEK_SET, SEEK_END);
-    size_t size = ftell(fp);
-    rewind(fp);
+    if (fstat(fileno(fp), &sb) == -1)
+        return NULL;
 
-    content = calloc(size + 1, sizeof(char));
-    fread(content, sizeof(char), size, fp);
-
+    content = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fileno(fp), 0);
     fclose(fp);
     return content;
 }
