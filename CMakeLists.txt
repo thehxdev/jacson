@@ -15,7 +15,7 @@ add_compile_options(
 )
 
 if (OPTIMIZE)
-    add_compile_options(-O2 -DNDEBUG)
+    add_compile_options(-O2)
     add_link_options(-s)
 else()
     add_compile_options(-Og -ggdb)
