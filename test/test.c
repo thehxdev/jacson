@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <assert.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <jacson/jacson.h>
@@ -17,18 +18,14 @@ int main(int argc, char **argv) {
     struct timespec start, end;
 
     char *jdata = read_file(argv[1]);
+    assert(jdata != NULL && "read_file returned NULL");
 
     clock_gettime(CLOCK_REALTIME, &start);
     Jacson *j = jcsn_parse_json(jdata);
+    assert(j != NULL && "jcsn_parse_json returned NULL");
     clock_gettime(CLOCK_REALTIME, &end);
 
     printf("parsing took %lu nano secs\n", end.tv_nsec - start.tv_nsec);
-
-    Jcsn_JValue *root = jcsn_ast_root(j);
-    if (!root) {
-        fprintf(stderr, "AST root is NULL\n");
-        goto ret;
-    }
 
     clock_gettime(CLOCK_REALTIME, &start);
     Jcsn_JValue *result = jcsn_get_value(j, argv[2]);
@@ -83,10 +80,7 @@ char *read_file(const char *path) {
     char *content;
 
     FILE *fp = fopen(path, "r");
-    if (!fp) {
-        perror("Filed to open file");
-        exit(1);
-    }
+    assert(fp != NULL && "failed to open input file");
 
     if (fstat(fileno(fp), &sb) == -1)
         return NULL;
