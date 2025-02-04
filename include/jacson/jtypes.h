@@ -34,7 +34,7 @@ extern "C" {
 
 
 // json value type
-enum Jcsn_JVal_T : byte {
+enum Jcsn_JVal_T {
     J_OBJECT,
     J_ARRAY,
     J_STRING,

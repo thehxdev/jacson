@@ -107,10 +107,10 @@ static Jcsn_QTList jcsn_tokenize_query(char *query) {
         goto ret;
 
     long idx, i = 0;
-    char *tk_str = NULL, *s_ptr = NULL, *q = strdup(query);
+    char *tk_str = NULL, *q = strdup(query);
     Jcsn_QToken token = { 0 };
 
-    tk_str = strtok_r(q, ".", &s_ptr);
+    tk_str = strtok(q, ".");
     while (tk_str) {
         if (*tk_str == '[') {
             idx = jcsn_parse_long(tk_str);
@@ -125,7 +125,7 @@ static Jcsn_QTList jcsn_tokenize_query(char *query) {
             };
         }
 
-        tk_str = strtok_r(NULL, ".", &s_ptr);
+        tk_str = strtok(NULL, ".");
         tlist.tokens[i] = token;
         i += 1;
     }

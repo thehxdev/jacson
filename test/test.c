@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-#include <unistd.h>
 #include <assert.h>
-#include <sys/mman.h>
 #include <sys/stat.h>
 #include <jacson/jacson.h>
+
+#ifdef __linux__
+    #include <unistd.h>
+    #include <sys/mman.h>
+#endif
 
 char *read_file(const char *path);
 
@@ -15,22 +17,13 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    struct timespec start, end;
-
     char *jdata = read_file(argv[1]);
     assert(jdata != NULL && "read_file returned NULL");
 
-    clock_gettime(CLOCK_REALTIME, &start);
     Jacson *j = jcsn_parse_json(jdata);
     assert(j != NULL && "jcsn_parse_json returned NULL");
-    clock_gettime(CLOCK_REALTIME, &end);
 
-    printf("parsing took %lu nano secs\n", end.tv_nsec - start.tv_nsec);
-
-    clock_gettime(CLOCK_REALTIME, &start);
     Jcsn_JValue *result = jcsn_get_value(j, argv[2]);
-    clock_gettime(CLOCK_REALTIME, &end);
-    printf("getting value took %lu nano secs\n\n", end.tv_nsec - start.tv_nsec);
 
     if (!result) {
         fprintf(stderr, "Query result is NULL\n");
@@ -84,8 +77,16 @@ char *read_file(const char *path) {
 
     if (fstat(fileno(fp), &sb) == -1)
         return NULL;
-
+#ifdef __linux__
     content = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fileno(fp), 0);
+#else
+    content = calloc(sb.st_size + 1, sizeof(char));
+    if (!content) {
+        goto ret;
+    }
+    (void)fread(content, sizeof(char), sb.st_size, fp);
+ret:
+#endif
     fclose(fp);
     return content;
 }

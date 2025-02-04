@@ -7,18 +7,24 @@ project(
 )
 
 set(CMAKE_C_STANDARD 99)
-add_compile_options(
-    -Wall
-    -Wextra
-    -Wno-unused-result
-    -Wno-implicit-fallthrough
-)
+if(NOT MSVC)
+    add_compile_options(
+        -Wall
+        -Wextra
+        -Wno-unused-result
+        -Wno-implicit-fallthrough
+    )
+endif()
 
 if (OPTIMIZE)
-    add_compile_options(-O2)
-    add_link_options(-s)
+    if(NOT MSVC)
+        add_compile_options(-O2)
+        add_link_options(-s)
+    endif()
 else()
-    add_compile_options(-Og -ggdb)
+    if(NOT MSVC)
+        add_compile_options(-Og -ggdb)
+    endif()
 endif()
 
 
