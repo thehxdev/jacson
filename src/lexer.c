@@ -89,11 +89,12 @@ static byte jcsn_tlist_append(Jcsn_TList *tlist, Jcsn_Token *token) {
     if (tlist->len == tlist->cap) {
         tlist->cap += TLIST_CAP_GROW_UNIT;
         size_t new_size = tlist->cap * sizeof(*tlist->tokens);
-        tlist->tokens = realloc(tlist->tokens, new_size);
-        if (!tlist->tokens) {
+        void *tmp = realloc(tlist->tokens, new_size);
+        if (!tmp) {
             JCSN_LOG_ERR("Failed to reallocate memory for token list\n", NULL);
             return 1;
         }
+        tlist->tokens = tmp;
     }
     tlist->tokens[tlist->len] = *token;
     tlist->len += 1;
@@ -103,7 +104,7 @@ static byte jcsn_tlist_append(Jcsn_TList *tlist, Jcsn_Token *token) {
 
 // extract a string in between two quotes
 static char *jcsn_parse_jstr(char **base, char **curr) {
-    char ch, *sub;
+    char ch, *sub = NULL;
     Jcsn_String str = jcsn_string_new(15);
 
     // skip first `"` character
