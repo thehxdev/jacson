@@ -130,6 +130,9 @@ Jcsn_AST *jcsn_parser_parse_raw(char *jdata) {
     register Jcsn_Token *tks = tlist.tokens;
     Jcsn_Parser parser = { 0 };
     Jcsn_AST *ast = malloc(sizeof(*ast));
+    if (!ast) {
+        goto ret;
+    }
     *ast = (Jcsn_AST) {
         .root = NULL,
         .depth = 0,
@@ -235,7 +238,8 @@ void jcsn_ast_free(Jcsn_AST *ast) {
     // Free the AST without recursion
 again:
     while (1) {
-        if (scope->type == J_OBJECT) { // handle json object
+        if (scope->type == J_OBJECT) {
+            // handle json object
             obj = scope->data.object;
             
             while ((i = obj->len -= 1, i >= 0)) {
@@ -248,10 +252,8 @@ again:
                         goto again;
                         break;
 
-                    case J_STRING: {
+                    case J_STRING:
                         xfree(curr->data.string);
-                        xfree(curr);
-                    } break;
 
                     default:
                         xfree(curr);
@@ -264,8 +266,8 @@ again:
             parent = scope->parent;
             xfree(scope);
             scope = parent;
-        }
-        else { // handle json array
+        } else {
+            // handle json array
             arr = scope->data.array;
             
             while ((i = arr->len -= 1, i >= 0)) {
@@ -277,10 +279,8 @@ again:
                         goto again;
                         break;
 
-                    case J_STRING: {
+                    case J_STRING:
                         xfree(curr->data.string);
-                        xfree(curr);
-                    } break;
 
                     default:
                         xfree(curr);
