@@ -52,7 +52,6 @@ extern "C" {
 #include <stdlib.h>
 
 // Jacson
-#include "types.h"
 #include "lexer.h"
 #include "log.h"
 
@@ -70,11 +69,11 @@ extern "C" {
 // validate json tokens
 // 0 -> found invalid token(s)
 // 1 -> everything is ok
-byte jcsn_validate_tokens(Jcsn_TList *tlist) {
+int jcsn_validate_tokens(Jcsn_TList *tlist) {
     if (tlist == NULL)
         return 0;
 
-    byte stat = 1;
+    int stat = 1;
     size_t len = tlist->len, i;
     long brace_nest = 0, bracket_nest = 0;
     register Jcsn_Token *tks = tlist->tokens, *curr = &tks[0], *prev, *next;

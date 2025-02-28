@@ -38,7 +38,7 @@ extern "C" {
  */
 
 // Get a value from AST
-Jcsn_JValue *jcsn_query_value(Jcsn_JValue *root, char *query);
+Jcsn_JValue *jcsn_query_value(Jcsn_JValue *root, const char *query);
 
 
 

@@ -34,19 +34,19 @@ extern "C" {
 Jcsn_JValue *jcsn_jval_new(enum Jcsn_JVal_T type);
 
 // Construct a new json object
-Jcsn_JValue *jcsn_jobj_new(size_t cap);
+Jcsn_JValue *jcsn_jobj_new(void);
 
 // Add a name to json object
-byte jcsn_jobj_add_name(Jcsn_JObject *jobj, const char *name);
+int jcsn_jobj_add_name(Jcsn_JObject *jobj, const char *name);
 
 // Set a neme's value in json object
-byte jcsn_jobj_set_value(Jcsn_JObject *jobj, Jcsn_JValue *value);
+Jcsn_JValue *jcsn_jobj_set_value(Jcsn_JObject *jobj, Jcsn_JValue *value);
 
 // Construct a new json array
-Jcsn_JValue *jcsn_jarr_new(size_t cap);
+Jcsn_JValue *jcsn_jarr_new(void);
 
 // Append a json value to json array
-byte jcsn_jarr_append(Jcsn_JArray *jarr, Jcsn_JValue *value);
+Jcsn_JValue *jcsn_jarr_append(Jcsn_JArray *jarr, Jcsn_JValue *value);
 
 // Construct a new json string
 Jcsn_JValue *jcsn_jstr_new(const char *str);

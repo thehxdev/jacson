@@ -29,23 +29,16 @@ extern "C" {
  * Macros and Constants
  */
 
-#define jcsn_is_whitespace(ch) \
+#define jcsn_char_is_whitespace(ch) \
     ((ch) == ' ' || (ch) == '\t' || (ch) == '\n' || ch == '\r')
 
 
 #define jcsn_skip_whitespaces(ptr) \
-    while ((**(ptr)) && ((jcsn_is_whitespace(**(ptr))))) *(ptr) += 1
+    while ((**(ptr)) && ((jcsn_char_is_whitespace(**(ptr))))) *(ptr) += 1
 
 
-#define jcsn_is_digit(ch) \
+#define jcsn_char_is_digit(ch) \
     (((ch) >= '0') && ((ch) <= '9'))
-
-
-#define JCSN_STRING_DEF_CAP (25)
-
-
-#define jcsn_string_new(cap)    \
-    (Jcsn_String){ NULL, 0, (((cap) > 0) ? ((cap)) : (JCSN_STRING_DEF_CAP)) }
 
 
 
@@ -65,6 +58,8 @@ typedef struct Jcsn_String {
  * Module Public API
  */
 
+Jcsn_String jcsn_string_new(void);
+
 // append to a dynamic string
 int jcsn_string_append(Jcsn_String *jstr, const char *s, size_t slen);
 
@@ -72,15 +67,15 @@ int jcsn_string_append(Jcsn_String *jstr, const char *s, size_t slen);
 void jcsn_string_clear(Jcsn_String *jstr);
 
 // `source` string exactly starts with `query`.
-char *jcsn_str_exact_start(const char *source, const char *query);
+char *jcsn_string_starts_with(const char *source, const char *query);
 
 // Get a sub-string between 2 pointers (start and end).
 // The returned character pointer is heap allocated.
-char *jcsn_substr_ptr(const char *start, const char *end);
+char *jcsn_string_substring(const char *start, const char *end);
 
 
 // Parse a single integer value from string literal
-long jcsn_parse_long(const char *s);
+long jcsn_string_to_long(const char *s);
 
 
 #ifdef __cplusplus

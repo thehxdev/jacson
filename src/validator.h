@@ -23,7 +23,7 @@ extern "C" {
 #endif // __cplusplus
 
 
-byte jcsn_validate_tokens(Jcsn_TList *tlist);
+int jcsn_validate_tokens(Jcsn_TList *tlist);
 
 
 #ifdef __cplusplus

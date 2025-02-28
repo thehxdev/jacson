@@ -42,14 +42,29 @@ extern "C" {
  * Module Public API
  */
 
+Jcsn_String jcsn_string_new(void) {
+    Jcsn_String s = (Jcsn_String){
+        .data = NULL,
+        .len = 0,
+        .cap = 8,
+    };
+    s.data = (char*)malloc(sizeof(char) * s.cap);
+    return s;
+}
+
+
 int jcsn_string_append(Jcsn_String *jstr, const char *s, size_t slen) {
+    if (!jstr->data)
+        return 1;
+
     // include null terminator while allocating more memory
     slen += 1;
-    if ((jstr->len % jstr->cap) <= slen) {
-        size_t blocks = ((int)((jstr->len + slen) / jstr->cap)) + 1;
-        jstr->data = realloc(jstr->data, (sizeof(char) * blocks * jstr->cap));
-        if (jstr->data == NULL)
+    if ((jstr->cap - jstr->len) < slen) {
+        jstr->cap <<= 1;
+        void *tmp = realloc(jstr->data, (sizeof(char) * jstr->cap));
+        if (!tmp)
             return 1;
+        jstr->data = tmp;
     }
 
     slen -= 1;
@@ -71,14 +86,14 @@ void jcsn_string_clear(Jcsn_String *jstr) {
 
 
 // `source` string exactly starts with `query`
-char *jcsn_str_exact_start(const char *source, const char *query) {
+char *jcsn_string_starts_with(const char *source, const char *query) {
     // example: s = "Hello World!", q = "Hello" -> True
-    if (source == NULL) {
+    if (!source) {
         JCSN_LOG_ERR("source string is null\n", NULL);
         return NULL;
     }
 
-    if (query == NULL) {
+    if (!query) {
         JCSN_LOG_ERR("query string is null\n", NULL);
         return NULL;
     }
@@ -86,13 +101,10 @@ char *jcsn_str_exact_start(const char *source, const char *query) {
     register char *s = (char*)source;
     register char *q = (char*)query;
 
-    if (*s != *q)
-        return NULL;
-
     while (*s && *q) {
         if (*s == *q) {
             s += 1;
-            q  += 1;
+            q += 1;
         }
         else
             break;
@@ -102,7 +114,7 @@ char *jcsn_str_exact_start(const char *source, const char *query) {
 }
 
 
-char *jcsn_substr_ptr(const char *start, const char *end) {
+char * jcsn_string_substring(const char *start, const char *end) {
     // For example extracting a string in between two quotes:
     //   "a json string example"
     //    ^                    ^
@@ -142,12 +154,12 @@ ret:
 }
 
 
-long jcsn_parse_long(const char *s) {
+long jcsn_string_to_long(const char *s) {
     char *tmp = (char*)s;
     long num = -1;
-    short neg = 0;
+    char neg = 0;
 
-    while (*tmp && !(jcsn_is_digit(*tmp))) tmp++;
+    while (*tmp && !(jcsn_char_is_digit(*tmp))) tmp++;
     if (*tmp == '\0') {
         JCSN_LOG_INF("given string does not contain any numbers\n", NULL);
         goto ret;
@@ -157,14 +169,14 @@ long jcsn_parse_long(const char *s) {
         neg = 1;
 
     num = 0;
-    while (*tmp && jcsn_is_digit(*tmp)) {
+    while (*tmp && jcsn_char_is_digit(*tmp)) {
         num *= 10;
         num += (*tmp - 48);
         tmp += 1;
     }
 
 ret:
-    return (neg) ? (num * -1) : num;
+    return (neg) ? (-(num)) : num;
 }
 
 

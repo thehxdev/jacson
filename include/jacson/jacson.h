@@ -63,7 +63,7 @@ void jcsn_free(Jacson *j);
 Jcsn_JValue *jcsn_ast_root(Jacson *j);
 
 // get a json value from AST
-Jcsn_JValue *jcsn_get_value(Jacson *j, char *query);
+Jcsn_JValue *jcsn_query_get(Jacson *j, const char *query);
 
 
 #ifdef __cplusplus

@@ -92,7 +92,7 @@ static void jcsn_qtlist_init(Jcsn_QTList *tlist,
 }
 
 
-static Jcsn_QTList jcsn_tokenize_query(char *query) {
+static Jcsn_QTList jcsn_tokenize_query(const char *query) {
     Jcsn_QTList tlist = {
         .tokens = NULL,
         .len = 0,
@@ -113,7 +113,7 @@ static Jcsn_QTList jcsn_tokenize_query(char *query) {
     tk_str = strtok(q, ".");
     while (tk_str) {
         if (*tk_str == '[') {
-            idx = jcsn_parse_long(tk_str);
+            idx = jcsn_string_to_long(tk_str);
             token = (Jcsn_QToken) {
                 .type = Q_IDX,
                 .data.idx = idx,
@@ -142,17 +142,17 @@ static Jcsn_JValue *jcsn_collection_find(Jcsn_JValue *coll, Jcsn_QToken *tk) {
         case J_ARRAY: {
             if (tk->type != Q_IDX)
                 goto ret;
-            return coll->data.array->vals[tk->data.idx];
+            return &coll->data.array.vals[tk->data.idx];
         }
         break;
 
         case J_OBJECT: {
             if (tk->type != Q_NAME)
                 goto ret;
-            Jcsn_JObject *obj = coll->data.object;
-            for (i = 0; i < obj->len; i++) {
-                if (strcmp(tk->data.str, obj->names[i]) == 0)
-                    return obj->values[i];
+            Jcsn_JObject obj = coll->data.object;
+            for (i = 0; i < obj.len; i++) {
+                if (strcmp(tk->data.str, obj.names[i]) == 0)
+                    return &obj.values[i];
             }
         }
         break;
@@ -184,7 +184,7 @@ static void jcsn_qtlist_free(Jcsn_QTList *qtl) {
  */
 
 // Get a value from AST
-Jcsn_JValue *jcsn_query_value(Jcsn_JValue *root, char *query) {
+Jcsn_JValue *jcsn_query_value(Jcsn_JValue *root, const char *query) {
     Jcsn_QToken t = { 0 };
     Jcsn_JValue *result = NULL, *scope = root;
 

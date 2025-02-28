@@ -6,3 +6,5 @@ vgcore*
 a.out
 compile_flags.txt
 tags
+out/
+.vs/

@@ -34,19 +34,10 @@ extern "C" {
 #endif // __JCSN_TRACE__
 
 // Jacson
-#include "types.h"
 #include "lexer.h"
 #include "str.h"
 #include "mem.h"
 #include "log.h"
-
-
-
-/**
- * Macros and Constants
- */
-
-#define TLIST_CAP_GROW_UNIT 30
 
 
 
@@ -76,7 +67,7 @@ typedef struct Jcsn_JNumber {
         double real;
     } value;
 
-    enum Jcsn_Token_T type;
+    enum Jcsn_Token_Type type;
 } Jcsn_JNumber;
 
 
@@ -85,11 +76,10 @@ typedef struct Jcsn_JNumber {
  * Module Private API
  */
 
-static byte jcsn_tlist_append(Jcsn_TList *tlist, Jcsn_Token *token) {
+static int jcsn_tlist_append(Jcsn_TList *tlist, Jcsn_Token *token) {
     if (tlist->len == tlist->cap) {
-        tlist->cap += TLIST_CAP_GROW_UNIT;
-        size_t new_size = tlist->cap * sizeof(*tlist->tokens);
-        void *tmp = realloc(tlist->tokens, new_size);
+        tlist->cap <<= 1;
+        void *tmp = realloc(tlist->tokens, tlist->cap * sizeof(*tlist->tokens));
         if (!tmp) {
             JCSN_LOG_ERR("Failed to reallocate memory for token list\n", NULL);
             return 1;
@@ -103,16 +93,16 @@ static byte jcsn_tlist_append(Jcsn_TList *tlist, Jcsn_Token *token) {
 
 
 // extract a string in between two quotes
-static char *jcsn_parse_jstr(char **base, char **curr) {
+static char *jcsn_extract_json_string(char **base, char **curr) {
     char ch, *sub = NULL;
-    Jcsn_String str = jcsn_string_new(15);
+    Jcsn_String str = jcsn_string_new();
 
     // skip first `"` character
     *curr = (*base += 1);
 
     while (**curr && **curr != '\"') {
         if (**curr == '\\') {
-            sub = jcsn_substr_ptr(*base, *curr);
+            sub = jcsn_string_substring(*base, *curr);
             jcsn_string_append(&str, sub, strlen(sub));
             xfree(sub);
 
@@ -155,7 +145,7 @@ static char *jcsn_parse_jstr(char **base, char **curr) {
         return NULL;
     }
 
-    sub = jcsn_substr_ptr(*base, *curr);
+    sub = jcsn_string_substring(*base, *curr);
     jcsn_string_append(&str, sub, strlen(sub));
 
 #ifdef __JCSN_TRACE__
@@ -174,10 +164,11 @@ static char *jcsn_parse_jstr(char **base, char **curr) {
 
 
 // parse a number in json data to it's actual value
-static Jcsn_JNumber jcsn_parse_jnum(char **base, char **curr) {
+static Jcsn_JNumber jcsn_parse_json_number(char **base, char **curr) {
     char ch, *tmp = NULL;
-    byte negative = 0;
-    byte has_point = 0;
+    // first bit: negative flag
+    // second bit: floating point flag
+    char flags = 0;
     Jcsn_JNumber num = {
         .value = { 0 },
         .type = TK_NULL,
@@ -185,31 +176,31 @@ static Jcsn_JNumber jcsn_parse_jnum(char **base, char **curr) {
 
     switch (**base) {
         case '-':
-            negative = 1;
+            flags |= 0x1u;
         case '+':
             *base += 1;
     }
 
     *curr = (*base + 1);
     while ((ch = **curr)) {
-        if (jcsn_is_digit(ch)) {
+        if (jcsn_char_is_digit(ch)) {
             *curr += 1;
         }
-        else if (ch == '.' && jcsn_is_digit(*(*curr += 1))) {
-            if (has_point) // invalid number
+        else if (ch == '.' && jcsn_char_is_digit(*(*curr += 1))) {
+            if (flags & 0x2u) // invalid number
                 return num;
-            has_point = 1;
+            flags |= 0x2u;
         }
         else
             break;
     }
 
-    tmp = jcsn_substr_ptr(*base, *curr);
-    if (has_point) {
-        num.value.real = (negative) ? (atof(tmp) * -1) : atof(tmp);
+    tmp = jcsn_string_substring(*base, *curr);
+    if (flags & 0x2u) {
+        num.value.real = (flags & 0x1u) ? (-(atof(tmp))) : atof(tmp);
         num.type = TK_DOUBLE;
     } else {
-        num.value.integer = (negative) ? (atol(tmp) * -1) : atol(tmp);
+        num.value.integer = (flags & 0x1u) ? (-(atol(tmp))) : atol(tmp);
         num.type = TK_INTEGER;
     }
 
@@ -247,11 +238,16 @@ Jcsn_TList jcsn_tokenize_json(char *jdata) {
         .curr  = jdata,
     };
 
-    char ch, *tmp, err = 0;
-    Jcsn_TList tlist = { NULL, 0, 0 };
+    char ch, *tmp = NULL, err = 0;
+    Jcsn_TList tlist = { NULL, 0, 8 };
+    tlist.tokens = malloc(sizeof(*tlist.tokens) * tlist.cap);
+    if (!tlist.tokens) {
+        err = 1;
+        goto ret;
+    }
     Jcsn_JNumber num = { {0}, TK_NULL };
     Jcsn_Token tk = {0};
-    enum Jcsn_Token_T tk_type;
+    enum Jcsn_Token_Type tk_type;
 
     while (1) {
         jcsn_skip_whitespaces(&tokenizer.base);
@@ -292,7 +288,7 @@ Jcsn_TList jcsn_tokenize_json(char *jdata) {
         else if (ch == '\"') {
             tk_type = TK_STRING;
             tk = (Jcsn_Token) { .type = tk_type };
-            tk.value.string = jcsn_parse_jstr(&tokenizer.base, &tokenizer.curr);
+            tk.value.string = jcsn_extract_json_string(&tokenizer.base, &tokenizer.curr);
             if (tk.value.string == NULL) {
                 JCSN_LOG_ERR("Failed to parse json string\n", NULL);
                 JCSN_LOG_ERR("Check json data syntax for errors\n", NULL);
@@ -305,7 +301,7 @@ Jcsn_TList jcsn_tokenize_json(char *jdata) {
 
         else if (ch == 'n') {
             tk_type = TK_NULL;
-            if ((tmp = jcsn_str_exact_start(tokenizer.base, "null"))) {
+            if ((tmp = jcsn_string_starts_with(tokenizer.base, "null"))) {
                 tk = (Jcsn_Token) { .type = tk_type };
                 tokenizer.base = tmp;
                 goto append;
@@ -320,11 +316,11 @@ Jcsn_TList jcsn_tokenize_json(char *jdata) {
         else if (ch == 't' || ch == 'f') {
             tk_type = TK_BOOL;
             tk = (Jcsn_Token) { .type = tk_type };
-            if ((tmp = jcsn_str_exact_start(tokenizer.base, "true"))) {
+            if ((tmp = jcsn_string_starts_with(tokenizer.base, "true"))) {
                 tk.value.boolean = true;
                 tokenizer.base = tmp;
             }
-            else if ((tmp = jcsn_str_exact_start(tokenizer.base, "false"))) {
+            else if ((tmp = jcsn_string_starts_with(tokenizer.base, "false"))) {
                 tk.value.boolean = false;
                 tokenizer.base = tmp;
             }
@@ -337,8 +333,8 @@ Jcsn_TList jcsn_tokenize_json(char *jdata) {
             goto append;
         } // end tokenize json boolean
 
-        else if (ch == '+' || ch == '-' || jcsn_is_digit(ch)) {
-            num = jcsn_parse_jnum(&tokenizer.base, &tokenizer.curr);
+        else if (ch == '+' || ch == '-' || jcsn_char_is_digit(ch)) {
+            num = jcsn_parse_json_number(&tokenizer.base, &tokenizer.curr);
             tk_type = num.type;
             switch (num.type) {
                 case TK_INTEGER:

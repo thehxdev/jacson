@@ -34,20 +34,10 @@ extern "C" {
 // Jacson
 #include "log.h"
 #include "mem.h"
-#include "types.h"
 #include "lexer.h"
 #include "validator.h"
 #include "jvalue.h"
 #include "parser.h"
-
-
-
-/**
- * Macros and Constants
- */
-
-// Dynamic array default capacity
-#define DARR_DEF_CAP 20
 
 
 
@@ -80,29 +70,26 @@ typedef struct Jcsn_Parser {
 
 // stat = 1 -> OK
 // stat = 0 -> ERROR
-static byte jcsn_handle_jvalue(Jcsn_Parser *parser, Jcsn_JValue *value) {
-    byte stat = 1;
-    Jcsn_JValue **scope = &parser->scope;
-
-    if (*scope == NULL) {
-        if (value->type == J_OBJECT || value->type == J_ARRAY)
-            *scope = value;
-        else
-            stat = 0;
+static Jcsn_JValue *jcsn_handle_jvalue(Jcsn_Parser *parser, Jcsn_JValue *value) {
+    Jcsn_JValue *addr = NULL;
+    if (!parser->scope) {
+        if (value->type == J_OBJECT || value->type == J_ARRAY) {
+            parser->scope = value;
+            addr = value;
+        }
         goto ret;
     }
 
-    value->parent = *scope;
-    if ((*scope)->type == J_OBJECT)
+    value->parent = parser->scope;
+    if (parser->scope->type == J_OBJECT)
         if (parser->prev->type == ':')
-            (void)jcsn_jobj_set_value((*scope)->data.object, value);
-        else 
-            stat = 0;
-    else if ((*scope)->type == J_ARRAY)
-        (void)jcsn_jarr_append((*scope)->data.array, value);
-
+            addr = jcsn_jobj_set_value(&parser->scope->data.object, value);
+        else
+            goto ret;
+    else if (parser->scope->type == J_ARRAY)
+        addr = jcsn_jarr_append(&parser->scope->data.array, value);
 ret:
-    return stat;
+    return addr;
 }
 
 
@@ -125,10 +112,11 @@ Jcsn_AST *jcsn_parser_parse_raw(char *jdata) {
         return NULL;
     }
 
-    long len = (long)tlist.len, i;
+    size_t len = tlist.len, i;
     Jcsn_JValue *val = NULL;
-    register Jcsn_Token *tks = tlist.tokens;
+    Jcsn_Token *tks = tlist.tokens;
     Jcsn_Parser parser = { 0 };
+
     Jcsn_AST *ast = malloc(sizeof(*ast));
     if (!ast) {
         goto ret;
@@ -146,25 +134,22 @@ Jcsn_AST *jcsn_parser_parse_raw(char *jdata) {
 
         switch (parser.curr->type) {
             case '{': {
-                val = jcsn_jobj_new(DARR_DEF_CAP);
-                jcsn_handle_jvalue(&parser, val);
-                parser.scope = val;
+                val = jcsn_jobj_new();
+                parser.scope = jcsn_handle_jvalue(&parser, val);
                 ast->depth += 1;
             }
             break;
 
             case '[': {
-                val = jcsn_jarr_new(DARR_DEF_CAP);
-                jcsn_handle_jvalue(&parser, val);
-                parser.scope = val;
+                val = jcsn_jarr_new();
+                parser.scope = jcsn_handle_jvalue(&parser, val);
                 ast->depth += 1;
             }
             break;
 
             case '}':
             case ']': {
-                parser.scope->parsed = true;
-                if (parser.scope->parent == NULL) {
+                if (!parser.scope->parent) {
                     ast->root = parser.scope;
                     goto ret;
                 }
@@ -175,7 +160,7 @@ Jcsn_AST *jcsn_parser_parse_raw(char *jdata) {
             case TK_STRING: {
                 if (parser.scope->type == J_OBJECT) { 
                     if (parser.next->type == ':')
-                        jcsn_jobj_add_name(parser.scope->data.object, parser.curr->value.string);
+                        jcsn_jobj_add_name(&parser.scope->data.object, parser.curr->value.string);
                     else {
                         val = jcsn_jstr_new(parser.curr->value.string);
                         jcsn_handle_jvalue(&parser, val);
@@ -227,24 +212,23 @@ ret:
 
 
 void jcsn_ast_free(Jcsn_AST *ast) {
-    if (ast == NULL)
+    if (!ast)
         return;
 
-    long i;
-    Jcsn_JObject *obj;
-    Jcsn_JArray *arr;
-    Jcsn_JValue *scope = ast->root, *curr = NULL, *parent;
+    long i = 0;
+    Jcsn_JArray *arr = NULL;
+    Jcsn_JObject *obj = NULL;
+    Jcsn_JValue *scope = ast->root, *curr = NULL, *parent = NULL;
 
-    // Free the AST without recursion
+    // Free AST without recursion
 again:
     while (1) {
         if (scope->type == J_OBJECT) {
             // handle json object
-            obj = scope->data.object;
-            
-            while ((i = obj->len -= 1, i >= 0)) {
+            obj = &scope->data.object;
+            while ((i = (long)(obj->len -= 1), i >= 0)) {
                 xfree(obj->names[i]);
-                curr = obj->values[i];
+                curr = &obj->values[i];
                 switch (curr->type) {
                     case J_OBJECT:
                     case J_ARRAY:
@@ -256,22 +240,18 @@ again:
                         xfree(curr->data.string);
 
                     default:
-                        xfree(curr);
                         break;
                 } // end switch (curr->type)
             } // end while loop
             xfree(obj->values);
             xfree(obj->names);
-            xfree(obj);
             parent = scope->parent;
-            xfree(scope);
             scope = parent;
         } else {
             // handle json array
-            arr = scope->data.array;
-            
-            while ((i = arr->len -= 1, i >= 0)) {
-                curr = arr->vals[i];
+            arr = &scope->data.array;
+            while ((i = (long)(arr->len -= 1), i >= 0)) {
+                curr = &arr->vals[i];
                 switch (curr->type) {
                     case J_OBJECT:
                     case J_ARRAY:
@@ -283,20 +263,18 @@ again:
                         xfree(curr->data.string);
 
                     default:
-                        xfree(curr);
                         break;
                 } // end switch (curr->type)
             } // end while loop
             xfree(arr->vals);
-            xfree(arr);
             parent = scope->parent;
-            xfree(scope);
             scope = parent;
         }
 
-        if (scope == NULL)
+        if (!scope)
             break;
-    } // end while (scope) 
+    } // end while (scope)
+    xfree(ast->root);
     xfree(ast);
 }
 

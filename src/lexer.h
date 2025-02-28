@@ -23,6 +23,7 @@ extern "C" {
 #endif // __cplusplus
 
 #include <stddef.h>
+#include <stdbool.h>
 
 
 /**
@@ -30,7 +31,7 @@ extern "C" {
  */
 
 // type of json tokens
-enum Jcsn_Token_T {
+enum Jcsn_Token_Type {
     // Single character tokens
     TK_OBJ_BEG = '{',
     TK_OBJ_END = '}',
@@ -52,11 +53,11 @@ enum Jcsn_Token_T {
 typedef struct Jcsn_Token {
     union {
         char   *string;
-        byte   boolean;
+        bool   boolean;
         long   integer;
         double real;
     } value;
-    enum Jcsn_Token_T type;
+    enum Jcsn_Token_Type type;
 } Jcsn_Token;
 
 

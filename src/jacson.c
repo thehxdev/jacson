@@ -76,7 +76,7 @@ Jcsn_JValue *jcsn_ast_root(Jacson *j) {
 }
 
 
-Jcsn_JValue *jcsn_get_value(Jacson *j, char *query) {
+Jcsn_JValue *jcsn_query_get(Jacson *j, const char *query) {
     return jcsn_query_value(j->ast->root, query);
 }
 

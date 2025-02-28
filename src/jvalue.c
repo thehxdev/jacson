@@ -29,9 +29,10 @@ extern "C" {
     #include <stdio.h>
 #endif // __JCSN_TRACE__
 #include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
 
 // Jacson
-#include "types.h"
 #include "log.h"
 #include "mem.h"
 #include "jvalue.h"
@@ -44,12 +45,12 @@ extern "C" {
 
 Jcsn_JValue *jcsn_jval_new(enum Jcsn_JVal_T type) {
     Jcsn_JValue *val = malloc(sizeof(*val));
-    if (val == NULL)
+    if (!val)
         goto ret;
 
-    *val = (Jcsn_JValue) {
+    *val = (Jcsn_JValue){
         .type = type,
-        .parsed = false,
+        //.parsed = false,
         .parent = NULL,
     };
 
@@ -59,104 +60,93 @@ ret:
 
 
 // Construct a new json object
-Jcsn_JValue *jcsn_jobj_new(size_t cap) {
+Jcsn_JValue *jcsn_jobj_new(void) {
     Jcsn_JValue *jval = jcsn_jval_new(J_OBJECT);
-    if (jval == NULL)
-        goto ret;
+    if (!jval)
+        return jval;
 
-    Jcsn_JObject **obj = &jval->data.object;
+    Jcsn_JObject *obj = &jval->data.object;
 
-    *obj = malloc(sizeof(**obj));
-    if (*obj == NULL) {
+    *obj = (Jcsn_JObject){
+        .len = 0,
+        .cap = 4,
+    };
+
+    obj->names = malloc(sizeof(*obj->names) * obj->cap);
+    obj->values = malloc(sizeof(*obj->values) * obj->cap);
+    if (!obj->names || !obj->values) {
+        xfree(obj->names);
+        xfree(obj->values);
         xfree(jval);
-        goto ret;
     }
 
-    **obj = (Jcsn_JObject) {
-        .len = 0,
-        .cap = cap,
-        // TODO: Handle null pointer
-        .names = malloc(sizeof(char*) * cap),
-        .values = malloc(sizeof(Jcsn_JValue*) * cap),
-    };
-
-ret:
     return jval;
 }
 
 
-byte jcsn_jobj_add_name(Jcsn_JObject *jobj, const char *name) {
-    if ((jobj->len % jobj->cap) == 0) {
-        size_t sum = (jobj->len + jobj->cap);
-
-        // TODO: Handle null pointers
-        jobj->names = realloc(jobj->names, sum * sizeof(char*));
-        jobj->values = realloc(jobj->values, sum * sizeof(Jcsn_JValue*));
-        if (jobj->names == NULL || jobj->values == NULL)
-            return 1;
+int jcsn_jobj_add_name(Jcsn_JObject *jobj, const char *name) {
+    if (jobj->len == jobj->cap) {
+        jobj->cap <<= 1;
+        void *tmp = realloc(jobj->names, sizeof(*jobj->names) * jobj->cap);
+        if (!tmp)
+            return 0;
+        jobj->names = tmp;
+        tmp = realloc(jobj->values, sizeof(*jobj->values) * jobj->cap);
+        if (!tmp)
+            return 0;
+        jobj->values = tmp;
     }
-
-    char **tmp = &jobj->names[jobj->len];
-    *tmp = (char*)name;
+    jobj->names[jobj->len] = (char*)name;
     jobj->len += 1;
-    return 0;
+    return 1;
 }
 
 
-byte jcsn_jobj_set_value(Jcsn_JObject *jobj, Jcsn_JValue *value) {
-    Jcsn_JValue **tmp = &jobj->values[jobj->len-1];
-    *tmp = value;
-    return 0;
+Jcsn_JValue *jcsn_jobj_set_value(Jcsn_JObject *jobj, Jcsn_JValue *value) {
+    Jcsn_JValue *last = &jobj->values[jobj->len - 1];
+    memmove(last, value, sizeof(*value));
+    return last;
 }
 
 
-Jcsn_JValue *jcsn_jarr_new(size_t cap) {
+Jcsn_JValue *jcsn_jarr_new(void) {
     Jcsn_JValue *jval = jcsn_jval_new(J_ARRAY);
-    if (jval == NULL)
+    if (!jval)
         goto ret;
+    Jcsn_JArray *arr = &jval->data.array;
 
-    Jcsn_JArray **arr = &jval->data.array;
-
-    *arr = malloc(sizeof(**arr));
-    **arr = (Jcsn_JArray) {
+    *arr = (Jcsn_JArray){
         .len = 0,
-        .cap = cap,
-        // TODO: Handle null pointer
-        .vals = malloc(sizeof(Jcsn_JValue*) * cap),
+        .cap = 4,
     };
+    arr->vals = malloc(sizeof(*arr->vals) * arr->cap);
 
 ret:
     return jval;
 }
 
 
-byte jcsn_jarr_append(Jcsn_JArray *jarr, Jcsn_JValue *value) {
-    if ((jarr->len % jarr->cap) == 0) {
-        size_t new_size = (jarr->len + jarr->cap) * sizeof(Jcsn_JValue*);
-        jarr->vals = realloc(jarr->vals, new_size);
-        if (jarr->vals == NULL) {
+Jcsn_JValue *jcsn_jarr_append(Jcsn_JArray *jarr, Jcsn_JValue *value) {
+    if (jarr->len == jarr->cap) {
+        jarr->cap <<= 1;
+        void *tmp = realloc(jarr->vals, jarr->cap * sizeof(*jarr->vals));
+        if (!tmp) {
             JCSN_LOG_ERR("%s: Failed to grow json array's memory\n", __FUNCTION__);
-            return 1;
+            return NULL;
         }
+        jarr->vals = tmp;
     }
-
-    Jcsn_JValue **tmp = &jarr->vals[jarr->len];
-    *tmp = value;
+    Jcsn_JValue *last = &jarr->vals[jarr->len];
+    memmove(last, value, sizeof(*value));
     jarr->len += 1;
-    return 0;
+    return last;
 }
 
 
 // Construct a new json string
 Jcsn_JValue *jcsn_jstr_new(const char *str) {
     Jcsn_JValue *val = jcsn_jval_new(J_STRING);
-    if (val == NULL)
-        goto ret;
-
     val->data.string = (char*)str;
-    val->parsed = true;
-
-ret:
     return val;
 }
 
