@@ -198,7 +198,7 @@ static Jcsn_JNumber jcsn_parse_json_number(char **base, char **curr) {
     tmp = jcsn_string_substring(*base, *curr);
     if (flags & 0x2u) {
         num.value.real = (flags & 0x1u) ? (-(atof(tmp))) : atof(tmp);
-        num.type = TK_DOUBLE;
+        num.type = TK_REAL;
     } else {
         num.value.integer = (flags & 0x1u) ? (-(atol(tmp))) : atol(tmp);
         num.type = TK_INTEGER;
@@ -281,7 +281,7 @@ Jcsn_TList jcsn_tokenize_json(char *jdata) {
         }
 
         else if (ch == ':') {
-            tk_type = TK_SET;
+            tk_type = TK_COLON;
             tokenizer.base += 1;
         }
 
@@ -342,7 +342,7 @@ Jcsn_TList jcsn_tokenize_json(char *jdata) {
                     tk.value.integer = num.value.integer;
                     break;
 
-                case TK_DOUBLE:
+                case TK_REAL:
                     tk = (Jcsn_Token) { .type = tk_type };
                     tk.value.real = num.value.real;
                     break;

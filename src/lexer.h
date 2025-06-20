@@ -37,13 +37,13 @@ enum Jcsn_Token_Type {
     TK_OBJ_END = '}',
     TK_ARR_BEG = '[',
     TK_ARR_END = ']',
-    TK_SET     = ':',
+    TK_COLON   = ':',
     TK_COMMA   = ',',
 
     // Json values
     TK_STRING,
     TK_INTEGER,
-    TK_DOUBLE,
+    TK_REAL,
     TK_BOOL,
     TK_NULL,
 };

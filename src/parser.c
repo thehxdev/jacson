@@ -194,7 +194,7 @@ Jcsn_AST *jcsn_parser_parse_raw(char *jdata) {
             }
             break;
 
-            case TK_DOUBLE: {
+            case TK_REAL: {
                 val = jcsn_jval_new(J_REAL);
                 val->data.real = parser.curr->value.real;
                 jcsn_handle_jvalue(&parser, val);
