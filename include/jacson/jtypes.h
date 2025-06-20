@@ -67,7 +67,7 @@ typedef struct Jcsn_JValue {
         struct Jcsn_JArray array;
         struct Jcsn_JObject object;
         char *string;
-        double real; // Fortran programmer, huh? :)
+        double real;
         long integer;
         bool boolean;
     } data;
