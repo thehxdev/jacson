@@ -34,15 +34,8 @@ target_compile_options(
     PRIVATE
     "$<${is_msvc}:$<BUILD_INTERFACE:-W3>>"
     "$<${is_gcc_like}:$<BUILD_INTERFACE:-Wall;-Wextra;-Wshadow;-Werror=pointer-arith;-Wno-unused-parameter>>"
-
-    "$<$<CONFIG:Debug>:$<${is_msvc}:$<BUILD_INTERFACE:-Od>>>"
-    "$<$<CONFIG:Debug>:$<${is_gcc_like}:$<BUILD_INTERFACE:-Og;-ggdb>>>"
-
-    "$<$<CONFIG:Release>:$<BUILD_INTERFACE:-O2>>"
 )
-
-target_compile_features(jacson PUBLIC c_std_99)
-
+target_compile_features(jacson PRIVATE c_std_99)
 target_include_directories(jacson PUBLIC "${JACSON_INCLUDE_DIR}")
 
 if (TRACE)
